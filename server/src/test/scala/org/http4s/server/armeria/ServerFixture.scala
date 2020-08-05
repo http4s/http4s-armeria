@@ -2,11 +2,10 @@ package org.http4s
 package server
 package armeria
 
-import cats.effect.{ConcurrentEffect, ContextShift, IO}
+import cats.effect.ConcurrentEffect
 import com.linecorp.armeria.common.SessionProtocol
 import com.linecorp.armeria.server.Server
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.Try
 
