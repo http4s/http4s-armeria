@@ -5,8 +5,8 @@
  */
 
 package org.http4s
-package server
 package armeria
+package server
 
 import cats.effect.{ConcurrentEffect, IO}
 import cats.implicits._
@@ -26,7 +26,13 @@ import java.net.InetSocketAddress
 import java.util.concurrent.CompletableFuture
 import org.http4s.internal.CollectionCompat.CollectionConverters._
 import org.http4s.internal.unsafeRunAsync
-import org.http4s.server.armeria.ArmeriaHttp4sHandler.defaultVault
+import ArmeriaHttp4sHandler.defaultVault
+import org.http4s.server.{
+  DefaultServiceErrorHandler,
+  SecureSession,
+  ServerRequestKeys,
+  ServiceErrorHandler
+}
 import scala.concurrent.ExecutionContext
 import scodec.bits.ByteVector
 
@@ -113,7 +119,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
     builder.build()
   }
 
-  /** Converts Armeria's [[HttpRequest]] to htt4s' [[Headers]]. */
+  /** Converts Armeria's [[com.linecorp.armeria.common.HttpHeaders]] to http4s' [[Headers]]. */
   private def toHeaders(req: HttpRequest): Headers =
     Headers(
       req

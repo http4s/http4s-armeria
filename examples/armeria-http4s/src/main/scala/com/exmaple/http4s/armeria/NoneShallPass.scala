@@ -9,7 +9,7 @@ package com.exmaple.http4s.armeria
 import com.linecorp.armeria.common.{HttpRequest, HttpResponse, HttpStatus}
 import com.linecorp.armeria.server.{HttpService, ServiceRequestContext, SimpleDecoratingHttpService}
 
-class NoneShallPass(delegate: HttpService) extends SimpleDecoratingHttpService(delegate) {
+final class NoneShallPass(delegate: HttpService) extends SimpleDecoratingHttpService(delegate) {
 
   override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse =
     HttpResponse.of(HttpStatus.FORBIDDEN)

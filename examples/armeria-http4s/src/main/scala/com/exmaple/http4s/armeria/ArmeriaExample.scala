@@ -10,7 +10,7 @@ package armeria
 import cats.effect._
 import com.linecorp.armeria.common.metric.{MeterIdPrefixFunction, PrometheusMeterRegistries}
 import com.linecorp.armeria.server.metric.{MetricCollectingService, PrometheusExpositionService}
-import org.http4s.server.armeria.{ArmeriaServer, ArmeriaServerBuilder}
+import org.http4s.armeria.server.{ArmeriaServer, ArmeriaServerBuilder}
 
 object ArmeriaExample extends IOApp {
   override def run(args: List[String]): IO[ExitCode] =
@@ -18,14 +18,13 @@ object ArmeriaExample extends IOApp {
 }
 
 object ArmeriaExampleApp {
-  def builder[F[_]: ConcurrentEffect: ContextShift: Timer](
-      blocker: Blocker): ArmeriaServerBuilder[F] = {
+  def builder[F[_]: ConcurrentEffect: ContextShift: Timer]: ArmeriaServerBuilder[F] = {
     val registry = PrometheusMeterRegistries.newRegistry()
     val prometheusRegistry = registry.getPrometheusRegistry
     ArmeriaServerBuilder[F]
       .bindHttp(8080)
       .withMeterRegistry(registry)
-      .withHttpRoutes("/http4s", ExampleService[F](blocker).routes)
+      .withHttpRoutes("/http4s", ExampleService[F].routes)
       .withHttpService("/metrics", new PrometheusExpositionService(prometheusRegistry))
       .withDecorator(
         MetricCollectingService.newDecorator(MeterIdPrefixFunction.ofDefault("server")))
@@ -33,8 +32,5 @@ object ArmeriaExampleApp {
   }
 
   def resource[F[_]: ConcurrentEffect: ContextShift: Timer]: Resource[F, ArmeriaServer[F]] =
-    for {
-      blocker <- Blocker[F]
-      server <- builder[F](blocker).resource
-    } yield server
+    builder[F].resource
 }

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.http4s.server.armeria
+package org.http4s.armeria.server
 
 import java.io.ByteArrayInputStream
 import java.security.cert.{CertificateFactory, X509Certificate}

@@ -4,9 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.http4s
-package server
-package armeria
+package org.http4s.armeria.server
 
 import cats.effect.{ConcurrentEffect, ContextShift, IO}
 import org.scalatest.Suite
@@ -16,6 +14,7 @@ import scala.concurrent.ExecutionContext
 trait IOServerFixture extends ServerFixture[IO] {
   this: Suite =>
 
+  scala.concurrent.duration.Duration
   private val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   protected implicit val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect(contextShift)
 }

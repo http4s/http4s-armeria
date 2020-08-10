@@ -4,9 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.http4s
-package server
-package armeria
+package org.http4s.armeria.server
 
 import cats.effect.IO
 import cats.implicits._
@@ -16,6 +14,7 @@ import com.linecorp.armeria.common.HttpStatus
 import com.linecorp.armeria.server.logging.{ContentPreviewingService, LoggingService}
 import java.net.{HttpURLConnection, URL}
 import java.nio.charset.StandardCharsets
+import org.http4s.HttpRoutes
 import org.http4s.dsl.io._
 import org.http4s.multipart.Multipart
 import org.scalatest.funsuite.AnyFunSuite

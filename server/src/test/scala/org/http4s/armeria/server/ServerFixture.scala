@@ -1,10 +1,9 @@
-package org.http4s
-package server
-package armeria
+package org.http4s.armeria.server
 
 import cats.effect.ConcurrentEffect
 import com.linecorp.armeria.common.SessionProtocol
 import com.linecorp.armeria.server.Server
+import java.net.URI
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 import scala.concurrent.duration._
 import scala.util.Try
@@ -32,7 +31,10 @@ trait ServerFixture[F[_]] extends BeforeAndAfterAll with BeforeAndAfterEach {
   protected def runForEach: Boolean = false
 
   protected def httpPort: Try[Int] = Try(server.activeLocalPort(SessionProtocol.HTTP))
+  protected def httpUri: Try[URI] = httpPort.map(port => URI.create(s"http://127.0.0.1:$port"))
+
   protected def httpsPort: Try[Int] = Try(server.activeLocalPort(SessionProtocol.HTTPS))
+  protected def httpsUri: Try[URI] = httpsPort.map(port => URI.create(s"https://127.0.0.1:$port"))
 
   private def setUp(): Unit = {
     val serverBuilder = ArmeriaServerBuilder[F].withGracefulShutdownTimeout(0.seconds, 0.seconds)

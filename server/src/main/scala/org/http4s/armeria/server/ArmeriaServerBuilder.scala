@@ -4,11 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.http4s
-package server
-package armeria
+package org.http4s.armeria.server
 
 import cats.effect.{ConcurrentEffect, Resource}
+import cats.implicits._
 import com.linecorp.armeria.common.util.Version
 import com.linecorp.armeria.common.{HttpRequest, HttpResponse, SessionProtocol}
 import com.linecorp.armeria.server.{
@@ -27,24 +26,32 @@ import java.security.PrivateKey
 import java.security.cert.X509Certificate
 import java.util.function.{Function => JFunction}
 import javax.net.ssl.KeyManagerFactory
+import org.http4s.{BuildInfo, HttpApp, HttpRoutes}
+import org.http4s.server.{
+  DefaultServiceErrorHandler,
+  Server,
+  ServerBuilder,
+  ServiceErrorHandler,
+  defaults
+}
 import org.http4s.server.defaults.{IdleTimeout, ResponseTimeout, ShutdownTimeout}
 import org.http4s.syntax.all._
 import org.log4s.{Logger, getLogger}
 import scala.collection.immutable
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.FiniteDuration
 
 sealed class ArmeriaServerBuilder[F[_]] private (
     armeriaServerBuilder: ArmeriaBuilder,
     socketAddress: InetSocketAddress,
     serviceErrorHandler: ServiceErrorHandler[F],
-    banner: Seq[String]
+    banner: List[String]
 )(implicit protected val F: ConcurrentEffect[F])
     extends ServerBuilder[F] {
   override type Self = ArmeriaServerBuilder[F]
 
   private[this] val logger: Logger = getLogger
 
-  type DecoratorFunction = (HttpService, ServiceRequestContext, HttpRequest) => HttpResponse
+  type DecoratingFunction = (HttpService, ServiceRequestContext, HttpRequest) => HttpResponse
 
   override def bindSocketAddress(socketAddress: InetSocketAddress): Self =
     copy(socketAddress = socketAddress)
@@ -116,8 +123,8 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     this
   }
 
-  /** Decorates all HTTP services with the specified [[DecoratorFunction]]. */
-  def withDecorator(decorator: DecoratorFunction): Self = {
+  /** Decorates all HTTP services with the specified [[DecoratingFunction]]. */
+  def withDecorator(decorator: DecoratingFunction): Self = {
     armeriaServerBuilder.decorator((delegate, ctx, req) => decorator(delegate, ctx, req))
     this
   }
@@ -128,8 +135,8 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     this
   }
 
-  /** Decorates HTTP services under the specified directory with the specified [[DecoratorFunction]]. */
-  def withDecoratorUnder(prefix: String, decorator: DecoratorFunction): Self = {
+  /** Decorates HTTP services under the specified directory with the specified [[DecoratingFunction]]. */
+  def withDecoratorUnder(prefix: String, decorator: DecoratingFunction): Self = {
     armeriaServerBuilder.decoratorUnder(
       prefix,
       (delegate, ctx, req) => decorator(delegate, ctx, req))
@@ -152,18 +159,18 @@ sealed class ArmeriaServerBuilder[F[_]] private (
 
   /** Sets the idle timeout of a connection in milliseconds for keep-alive.
     *
-    * @param idleTimeout the timeout. [[Duration.Zero]] disables the timeout.
+    * @param idleTimeout the timeout. [[scala.concurrent.duration.Duration.Zero]] disables the timeout.
     */
-  def withIdleTimeout(idleTimeout: Duration): Self = {
+  def withIdleTimeout(idleTimeout: FiniteDuration): Self = {
     armeriaServerBuilder.idleTimeoutMillis(idleTimeout.toMillis)
     this
   }
 
   /** Sets the timeout of a request.
     *
-    * @param requestTimeout the timeout. [[Duration.Zero]] disables the timeout.
+    * @param requestTimeout the timeout. [[scala.concurrent.duration.Duration.Zero]] disables the timeout.
     */
-  def withRequestTimeout(requestTimeout: Duration): Self = {
+  def withRequestTimeout(requestTimeout: FiniteDuration): Self = {
     armeriaServerBuilder.requestTimeoutMillis(requestTimeout.toMillis)
     this
   }
@@ -224,12 +231,17 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     * @see [[withTlsCustomizer(scala.Function1)]]
     */
   def withTls(
-      keyCertChainInputStream: InputStream,
-      keyInputStream: InputStream,
-      keyPassword: Option[String]): Self = {
-    armeriaServerBuilder.tls(keyCertChainInputStream, keyInputStream, keyPassword.orNull)
-    this
-  }
+      keyCertChainInputStream: Resource[F, InputStream],
+      keyInputStream: Resource[F, InputStream],
+      keyPassword: Option[String]): F[Self] =
+    (keyCertChainInputStream, keyInputStream).tupled
+      .use {
+        case (keyCertChain, key) =>
+          F.delay {
+            armeriaServerBuilder.tls(keyCertChain, key, keyPassword.orNull)
+            this
+          }
+      }
 
   /** Configures SSL or TLS of this [[BackendServer]] with the specified cleartext [[PrivateKey]] and
     * [[X509Certificate]] chain.
@@ -250,16 +262,6 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     this
   }
 
-  /** Configures SSL or TLS of the [[BackendServer]] with an auto-generated self-signed certificate.
-    * '''Note:''' You should never use this in production but only for a testing purpose.
-    *
-    * @see [[withTlsCustomizer(scala.Function1)]]
-    */
-  def withTlsSelfSigned: Self = {
-    armeriaServerBuilder.tlsSelfSigned
-    this
-  }
-
   /** Adds the specified `tlsCustomizer` which can arbitrarily configure the [[SslContextBuilder]] that will be
     * applied to the SSL session.
     */
@@ -272,14 +274,14 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     * requests to go away before actually shutting down.
     *
     * @param quietPeriod the number of milliseconds to wait for active
-    *                    requests to go end before shutting down. [[Duration.Zero]] means
+    *                    requests to go end before shutting down. [[scala.concurrent.duration.Duration.Zero]] means
     *                    the server will stop right away without waiting.
     * @param timeout     the amount of time to wait before shutting down the server regardless of active
     *                    requests.
     *                    This should be set to a time greater than `quietPeriod` to ensure the server
     *                    shuts down even if there is a stuck request.
     */
-  def withGracefulShutdownTimeout(quietPeriod: Duration, timeout: Duration): Self = {
+  def withGracefulShutdownTimeout(quietPeriod: FiniteDuration, timeout: FiniteDuration): Self = {
     armeriaServerBuilder.gracefulShutdownTimeoutMillis(quietPeriod.toMillis, timeout.toMillis)
     this
   }
@@ -302,13 +304,13 @@ sealed class ArmeriaServerBuilder[F[_]] private (
         }
     }
 
-  override def withBanner(banner: immutable.Seq[String]): Self = copy(banner = banner)
+  override def withBanner(banner: immutable.Seq[String]): Self = copy(banner = banner.toList)
 
   private def copy(
       armeriaServerBuilder: ArmeriaBuilder = armeriaServerBuilder,
       socketAddress: InetSocketAddress = socketAddress,
       serviceErrorHandler: ServiceErrorHandler[F] = serviceErrorHandler,
-      banner: Seq[String] = banner
+      banner: List[String] = banner
   ): Self =
     new ArmeriaServerBuilder(armeriaServerBuilder, socketAddress, serviceErrorHandler, banner)
 }

@@ -1,4 +1,4 @@
-import sbt.Keys.{libraryDependencies, scalacOptions}
+import sbt.Keys.libraryDependencies
 
 inThisBuild(
   Seq(
@@ -13,7 +13,7 @@ val versions = new {
   val armeria = "0.99.9"
   val circe = "0.13.0"
   val fs2 = "2.4.2"
-  val http4s = "0.21.6"
+  val http4s = "0.21.7"
   val logback = "1.2.3"
   val micrometer = "1.5.3"
   val scalaTest = "3.2.0"
@@ -37,21 +37,13 @@ lazy val exampleArmeriaHttp4s = project
   .in(file("examples/armeria-http4s"))
   .settings(
     name := "examples-armeria-http4s",
-    scalacOptions += "-P:silencer:pathFilters=.*.html",
     libraryDependencies ++= List(
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
-      "io.circe" %% "circe-core" % versions.circe,
       "io.micrometer" % "micrometer-registry-prometheus" % versions.micrometer,
-      "org.http4s" %% "http4s-circe" % versions.http4s,
-      "org.http4s" %% "http4s-dsl" % versions.http4s,
-      "org.http4s" %% "http4s-twirl" % versions.http4s,
-      "org.http4s" %% "http4s-scala-xml" % versions.http4s,
-      ("com.github.ghik" % "silencer-lib" % versions.silencer % Provided).cross(CrossVersion.full),
-      compilerPlugin(
-        ("com.github.ghik" % "silencer-plugin" % versions.silencer).cross(CrossVersion.full))
+      "org.http4s" %% "http4s-dsl" % versions.http4s
     )
   )
-  .enablePlugins(SbtTwirl)
+  .enablePlugins(PrivateProjectPlugin)
   .dependsOn(server)
 
 lazy val exampleArmeriaScalaPB = project
