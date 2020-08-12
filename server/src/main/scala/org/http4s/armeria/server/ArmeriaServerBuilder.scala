@@ -315,6 +315,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     new ArmeriaServerBuilder(armeriaServerBuilder, socketAddress, serviceErrorHandler, banner)
 }
 
+// TODO(ikhoon): Hide `Server[F]` from public to avoid breaking changes in http4s v1.0
 trait ArmeriaServer[F[_]] extends Server[F] {
   def server: BackendServer
 }

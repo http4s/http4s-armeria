@@ -11,13 +11,11 @@ inThisBuild(
 
 val versions = new {
   val armeria = "0.99.9"
-  val circe = "0.13.0"
   val fs2 = "2.4.2"
   val http4s = "0.21.7"
   val logback = "1.2.3"
   val micrometer = "1.5.3"
   val scalaTest = "3.2.0"
-  val silencer = "1.7.1"
 }
 
 lazy val server = project
