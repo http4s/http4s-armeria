@@ -66,7 +66,7 @@ class ArmeriaServerBuilderSpec extends AnyFunSuite with IOServerFixture with Mat
       .get("/service/thread/routing")
       .aggregate()
       .join()
-      .contentUtf8() must startWith("armeria-common-worker-nio")
+      .contentUtf8() must startWith("armeria-common-worker")
   }
 
   test("execute the service task on the service executor") {
@@ -75,7 +75,7 @@ class ArmeriaServerBuilderSpec extends AnyFunSuite with IOServerFixture with Mat
       .get("/service/thread/effect")
       .aggregate()
       .join()
-      .contentUtf8() must startWith("armeria-common-worker-nio")
+      .contentUtf8() must startWith("armeria-common-worker")
   }
 
   test("be able to echo its input") {
