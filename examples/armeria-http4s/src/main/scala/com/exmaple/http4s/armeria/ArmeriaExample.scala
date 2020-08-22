@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2020 http4s.org
+ * Copyright 2020-2020 http4s.org
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -24,7 +24,7 @@ object ArmeriaExampleApp {
     ArmeriaServerBuilder[F]
       .bindHttp(8080)
       .withMeterRegistry(registry)
-      .withHttpRoutes("/http4s", ExampleService[F].routes)
+      .withHttpRoutes("/http4s", ExampleService[F].routes())
       .withHttpService("/metrics", new PrometheusExpositionService(prometheusRegistry))
       .withDecorator(
         MetricCollectingService.newDecorator(MeterIdPrefixFunction.ofDefault("server")))

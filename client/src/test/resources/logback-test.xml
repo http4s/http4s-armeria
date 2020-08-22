@@ -9,7 +9,7 @@
     </encoder>
   </appender>
 
-  <logger name="com.linecorp.armeria" level="TRACE" />
+  <logger name="com.linecorp.armeria" level="DEBUG" />
   <logger name="org.http4s.armeria" level="DEBUG" />
 
   <root level="WARN">

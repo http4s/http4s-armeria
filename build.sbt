@@ -8,7 +8,8 @@ inThisBuild(
     scalaVersion := crossScalaVersions.value.head,
     homepage := Some(url("https://github.com/http4s/http4s-armeria")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
-    startYear := Some(2020)
+    startYear := Some(2020),
+    Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true -Dcom.linecorp.armeria.verboseExceptions=always"
   )
 )
 
@@ -29,7 +30,7 @@ lazy val root = project
     name := "http4s-armeria",
     description := " Armeria backend for http4s"
   )
-  .aggregate(server)
+  .aggregate(server, client)
 
 lazy val server = project
   .settings(publishSettings: _*)
@@ -41,6 +42,18 @@ lazy val server = project
       "org.http4s" %% "http4s-server" % versions.http4s,
       "ch.qos.logback" % "logback-classic" % versions.logback % Test,
       "org.http4s" %% "http4s-dsl" % versions.http4s % Test,
+      "org.scalatest" %% "scalatest" % versions.scalaTest % Test
+    )
+  )
+
+lazy val client = project
+  .settings(
+    name := "http4s-armeria-client",
+    libraryDependencies ++= List(
+      "com.linecorp.armeria" % "armeria" % versions.armeria,
+      "co.fs2" %% "fs2-reactive-streams" % versions.fs2,
+      "org.http4s" %% "http4s-client" % versions.http4s,
+      "ch.qos.logback" % "logback-classic" % versions.logback % Test,
       "org.scalatest" %% "scalatest" % versions.scalaTest % Test
     )
   )
