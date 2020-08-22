@@ -1,24 +1,38 @@
-import sbt.Keys.libraryDependencies
+import sbtrelease.ReleasePlugin.autoImport._
 
 inThisBuild(
   Seq(
     organization := "org.http4s",
     name := "http4s-armeria",
-    crossScalaVersions := Seq("2.13.2", "2.12.11"),
-    scalaVersion := crossScalaVersions.value.head
+    crossScalaVersions := Seq("2.13.3", "2.12.11"),
+    scalaVersion := crossScalaVersions.value.head,
+    homepage := Some(url("https://github.com/http4s/http4s-armeria")),
+    licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+    startYear := Some(2020)
   )
 )
 
 val versions = new {
-  val armeria = "0.99.9"
-  val fs2 = "2.4.2"
+  val armeria = "1.0.0"
+  val fs2 = "2.4.3"
   val http4s = "0.21.7"
   val logback = "1.2.3"
   val micrometer = "1.5.3"
-  val scalaTest = "3.2.0"
+  val scalaTest = "3.2.2"
 }
 
+lazy val root = project
+  .in(file("."))
+  .enablePlugins(PrivateProjectPlugin)
+  .settings(
+    // Root project
+    name := "http4s-armeria",
+    description := " Armeria backend for http4s"
+  )
+  .aggregate(server)
+
 lazy val server = project
+  .settings(publishSettings: _*)
   .settings(
     name := "http4s-armeria-server",
     libraryDependencies ++= List(
@@ -49,3 +63,37 @@ lazy val exampleArmeriaScalaPB = project
   .settings(
     name := "examples-armeria-scalapb"
   )
+
+lazy val publishSettings = List(
+  scmInfo := Some(
+    ScmInfo(
+      url("https://github.com/http4s/http4s-armeria"),
+      "git@github.com:http4s/http4s-armeria.git")),
+  developers := List(
+    Developer(
+      "ikhoon",
+      "Ikhun Um",
+      "ih.pert@gmail.com",
+      url("https://github.com/ikhoon")
+    )
+  ),
+  publishTo := {
+    if (isSnapshot.value)
+      Some(Opts.resolver.sonatypeSnapshots)
+    else
+      Some(Opts.resolver.sonatypeStaging)
+  },
+  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+  publishMavenStyle := true,
+  pomIncludeRepository := { _ => false },
+  Test / publishArtifact := false,
+  credentials ++= (for {
+    username <- sys.env.get("SONATYPE_USERNAME")
+    password <- sys.env.get("SONATYPE_PASSWORD")
+  } yield Credentials(
+    "Sonatype Nexus Repository Manager",
+    "oss.sonatype.org",
+    username,
+    password
+  ))
+)

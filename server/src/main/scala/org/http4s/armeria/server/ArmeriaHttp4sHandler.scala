@@ -85,7 +85,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
           Stream(toResponseHeaders(trailers, None))
       }
 
-    HttpResponse.of((headers ++ body ++ trailers).toUnicastPublisher())
+    HttpResponse.of((headers ++ body ++ trailers).toUnicastPublisher)
   }
 
   /** Converts Armeria's [[HttpRequest]] to http4s' [[Request]]. */
@@ -186,5 +186,5 @@ private[armeria] object ArmeriaHttp4sHandler {
 
 object ServiceRequestContexts {
   val Key: VaultKey[ServiceRequestContext] =
-    VaultKey.newKey[IO, ServiceRequestContext].unsafeRunSync
+    VaultKey.newKey[IO, ServiceRequestContext].unsafeRunSync()
 }
