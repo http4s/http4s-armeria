@@ -151,7 +151,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     this
   }
 
-  /** Configures the Armeria server using the specified [[ArmeriaBuilder]]. */
+  /** Configures the Armeria server using the specified [[com.linecorp.armeria.server.ServerBuilder]]. */
   def withArmeriaBuilder(customizer: ArmeriaBuilder => Unit): Self = {
     customizer(armeriaServerBuilder)
     this
@@ -178,7 +178,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
   /** Adds an HTTP port that listens on all available network interfaces.
     *
     * @param port the HTTP port number.
-    * @see [[ArmeriaBuilder#http(java.net.InetSocketAddress)]]
+    * @see [[com.linecorp.armeria.server.ServerBuilder#https(localAddress:java\.net\.InetSocketAddress):com\.linecorp\.armeria\.server\.ServerBuilder*]]
     */
   def withHttp(port: Int): Self = {
     armeriaServerBuilder.http(port)
@@ -188,14 +188,15 @@ sealed class ArmeriaServerBuilder[F[_]] private (
   /** Adds an HTTPS port that listens on all available network interfaces.
     *
     * @param port the HTTPS port number.
-    * @see [[ArmeriaBuilder#https(java.net.InetSocketAddress)]]
+    * @see [[com.linecorp.armeria.server.ServerBuilder#https(localAddress:java\.net\.InetSocketAddress):com\.linecorp\.armeria\.server\.ServerBuilder*]]
     */
   def withHttps(port: Int): Self = {
     armeriaServerBuilder.https(port)
     this
   }
 
-  /** Sets the [[ChannelOption]] of the server socket bound by [[BackendServer]].
+  /** Sets the [[io.netty.channel.ChannelOption]] of the server socket bound by
+    * [[com.linecorp.armeria.server.Server]].
     * Note that the previously added option will be overridden if the same option is set again.
     *
     * @see [[https://armeria.dev/docs/advanced-production-checklist Production checklist]]
@@ -205,7 +206,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     this
   }
 
-  /** Sets the [[ChannelOption]] of sockets accepted by [[BackendServer]].
+  /** Sets the [[io.netty.channel.ChannelOption]] of sockets accepted by [[com.linecorp.armeria.server.Server]].
     * Note that the previously added option will be overridden if the same option is set again.
     *
     * @see [[https://armeria.dev/docs/advanced-production-checklist Production checklist]]
@@ -215,20 +216,20 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     this
   }
 
-  /** Configures SSL or TLS of this [[BackendServer]] from the specified `keyCertChainFile`,
-    * `keyFile` and `keyPassword`.
+  /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] from the specified
+    * `keyCertChainFile`, `keyFile` and `keyPassword`.
     *
-    * @see [[withTlsCustomizer(scala.Function1)]]
+    * @see [[withTlsCustomizer]]
     */
   def withTls(keyCertChainFile: File, keyFile: File, keyPassword: Option[String]): Self = {
     armeriaServerBuilder.tls(keyCertChainFile, keyFile, keyPassword.orNull)
     this
   }
 
-  /** Configures SSL or TLS of this [[BackendServer]] with the specified `keyCertChainInputStream`,
-    * `keyInputStream` and `keyPassword`.
+  /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] with the specified
+    * `keyCertChainInputStream`, `keyInputStream` and `keyPassword`.
     *
-    * @see [[withTlsCustomizer(scala.Function1)]]
+    * @see [[withTlsCustomizer]]
     */
   def withTls(
       keyCertChainInputStream: Resource[F, InputStream],
@@ -243,34 +244,35 @@ sealed class ArmeriaServerBuilder[F[_]] private (
           }
       }
 
-  /** Configures SSL or TLS of this [[BackendServer]] with the specified cleartext [[PrivateKey]] and
-    * [[X509Certificate]] chain.
+  /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] with the specified cleartext
+    * [[java.security.PrivateKey]] and [[java.security.cert.X509Certificate]] chain.
     *
-    * @see [[withTlsCustomizer(scala.Function1)]]
+    * @see [[withTlsCustomizer]]
     */
   def withTls(key: PrivateKey, keyCertChain: X509Certificate*): Self = {
     armeriaServerBuilder.tls(key, keyCertChain: _*)
     this
   }
 
-  /** Configures SSL or TLS of this [[BackendServer]] with the specified [[KeyManagerFactory]].
+  /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] with the specified
+    * [[javax.net.ssl.KeyManagerFactory]].
     *
-    * @see [[withTlsCustomizer(scala.Function1)]]
+    * @see [[withTlsCustomizer]]
     */
   def withTls(keyManagerFactory: KeyManagerFactory): Self = {
     armeriaServerBuilder.tls(keyManagerFactory)
     this
   }
 
-  /** Adds the specified `tlsCustomizer` which can arbitrarily configure the [[SslContextBuilder]] that will be
-    * applied to the SSL session.
+  /** Adds the specified `tlsCustomizer` which can arbitrarily configure the
+    * [[io.netty.handler.ssl.SslContextBuilder]] that will be applied to the SSL session.
     */
   def withTlsCustomizer(tlsCustomizer: SslContextBuilder => Unit): Self = {
     armeriaServerBuilder.tlsCustomizer(ctxBuilder => tlsCustomizer(ctxBuilder))
     this
   }
 
-  /** Sets the amount of time to wait after calling [[BackendServer#stop()]] for
+  /** Sets the amount of time to wait after calling [[com.linecorp.armeria.server.Server#stop]] for
     * requests to go away before actually shutting down.
     *
     * @param quietPeriod the number of milliseconds to wait for active
@@ -286,7 +288,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     this
   }
 
-  /** Sets the [[MeterRegistry]] that collects various stats. */
+  /** Sets the [[io.micrometer.core.instrument.MeterRegistry]] that collects various stats. */
   def withMeterRegistry(meterRegistry: MeterRegistry): Self = {
     armeriaServerBuilder.meterRegistry(meterRegistry)
     this
