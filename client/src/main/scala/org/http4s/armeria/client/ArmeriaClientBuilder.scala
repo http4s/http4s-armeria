@@ -99,14 +99,18 @@ sealed class ArmeriaClientBuilder[F[_]] private (clientBuilder: WebClientBuilder
     this
   }
 
-  /** Returns a newly-created http4s [[Client]] based on Armeria [[com.linecorp.armeria.client.WebClient]]. */
+  /** Returns a newly-created http4s [[org.http4s.client.Client]] based on
+    * Armeria [[com.linecorp.armeria.client.WebClient]].
+    */
   def build: Client[F] = new ArmeriaClient(clientBuilder.build())
 
   override def resource: Resource[F, Client[F]] =
     Resource.pure(build)
 }
 
-/** A builder class that builds http4s [[Client]] based on Armeria [[com.linecorp.armeria.client.WebClient]]. */
+/** A builder class that builds http4s [[org.http4s.client.Client]] based on
+  * Armeria [[com.linecorp.armeria.client.WebClient]].
+  */
 object ArmeriaClientBuilder {
 
   /** Returns a new [[ArmeriaClientBuilder]]. */
@@ -117,7 +121,6 @@ object ArmeriaClientBuilder {
 
   /** Returns a new [[ArmeriaClientBuilder]] created with the specified base [[java.net.URI]].
     *
-    * @see [[com.linecorp.armeria.client.WebClient.builder(String)]]
     * @return `Left(IllegalArgumentException)` if the `uri` is not valid or its scheme is not one of the values
     *         values in [[com.linecorp.armeria.common.SessionProtocol.httpValues]] or
     *         [[com.linecorp.armeria.common.SessionProtocol.httpsValues]], else
@@ -133,7 +136,7 @@ object ArmeriaClientBuilder {
 
   /** Returns a new [[ArmeriaClientBuilder]] created with the specified base [[java.net.URI]].
     *
-    * @throws IllegalArgumentException if the `uri` is not valid or its scheme is not one of the values
+    * @throws scala.IllegalArgumentException if the `uri` is not valid or its scheme is not one of the values
     *                                  in [[com.linecorp.armeria.common.SessionProtocol.httpValues]] or
     *                                  [[com.linecorp.armeria.common.SessionProtocol.httpsValues]].
     */
@@ -143,7 +146,7 @@ object ArmeriaClientBuilder {
 
   /** Returns a new [[ArmeriaClientBuilder]] created with the specified base [[java.net.URI]].
     *
-    * @return `Left(IllegalArgumentException)` if the [[URI]] is not valid or its scheme is not one of the
+    * @return `Left(IllegalArgumentException)` if the [[java.net.URI]] is not valid or its scheme is not one of the
     *          values in [[com.linecorp.armeria.common.SessionProtocol.httpValues]] or
     *          [[com.linecorp.armeria.common.SessionProtocol.httpsValues]], else
     *          `Right(ArmeriaClientBuilder)`.
@@ -158,7 +161,7 @@ object ArmeriaClientBuilder {
 
   /** Returns a new [[ArmeriaClientBuilder]] created with the specified base [[java.net.URI]].
     *
-    * @throws IllegalArgumentException if the [[URI]] is not valid or its scheme is not one of the values
+    * @throws scala.IllegalArgumentException if the [[java.net.URI]] is not valid or its scheme is not one of the values
     *                                  values in [[com.linecorp.armeria.common.SessionProtocol.httpValues]] or
     *                                  [[com.linecorp.armeria.common.SessionProtocol.httpsValues]].
     */
