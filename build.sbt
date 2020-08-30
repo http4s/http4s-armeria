@@ -47,6 +47,7 @@ lazy val server = project
   )
 
 lazy val client = project
+  .settings(publishSettings: _*)
   .settings(
     name := "http4s-armeria-client",
     libraryDependencies ++= List(
