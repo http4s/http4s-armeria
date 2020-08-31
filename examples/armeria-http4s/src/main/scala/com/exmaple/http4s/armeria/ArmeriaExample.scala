@@ -24,7 +24,7 @@ object ArmeriaExampleApp {
     ArmeriaServerBuilder[F]
       .bindHttp(8080)
       .withMeterRegistry(registry)
-      .withHttpRoutes("/http4s", ExampleService[F].routes)
+      .withHttpRoutes("/http4s", ExampleService[F].routes())
       .withHttpService("/metrics", new PrometheusExpositionService(prometheusRegistry))
       .withDecorator(
         MetricCollectingService.newDecorator(MeterIdPrefixFunction.ofDefault("server")))

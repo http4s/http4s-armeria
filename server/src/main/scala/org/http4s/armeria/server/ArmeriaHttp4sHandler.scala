@@ -25,10 +25,9 @@ import io.chrisdavenport.vault.{Vault, Key => VaultKey}
 import fs2._
 import fs2.interop.reactivestreams._
 import java.net.InetSocketAddress
-import java.util.concurrent.CompletableFuture
 import org.http4s.internal.CollectionCompat.CollectionConverters._
-import org.http4s.internal.unsafeRunAsync
 import ArmeriaHttp4sHandler.{RightUnit, defaultVault, toHttp4sMethod}
+import org.http4s.internal.unsafeRunAsync
 import org.http4s.server.{
   DefaultServiceErrorHandler,
   SecureSession,
@@ -52,44 +51,39 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 
   override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
     implicit val ec = ExecutionContext.fromExecutor(ctx.eventLoop())
-    val future = new CompletableFuture[HttpResponse]()
-    unsafeRunAsync(toRequest(ctx, req).fold(onParseFailure(_, future), handleRequest(_, future))) {
+    val responseWriter = HttpResponse.streaming()
+    unsafeRunAsync(
+      toRequest(ctx, req)
+        .fold(onParseFailure(_, responseWriter), handleRequest(_, responseWriter))) {
       case Right(_) =>
         IO.unit
       case Left(ex) =>
-        discardReturn(future.completeExceptionally(ex))
+        discardReturn(responseWriter.close(ex))
         IO.unit
     }
-    HttpResponse.from(future)
+    responseWriter
   }
 
-  private def handleRequest(
-      request: Request[F],
-      responseFuture: CompletableFuture[HttpResponse]): F[Unit] =
+  private def handleRequest(request: Request[F], writer: HttpResponseWriter): F[Unit] =
     serviceFn(request)
       .recoverWith(serviceErrorHandler(request))
-      .flatMap(toHttpResponse(_, responseFuture))
+      .flatMap(toHttpResponse(_, writer))
 
-  private def onParseFailure(
-      parseFailure: ParseFailure,
-      responseFuture: CompletableFuture[HttpResponse]): F[Unit] = {
+  private def onParseFailure(parseFailure: ParseFailure, writer: HttpResponseWriter): F[Unit] = {
     val response = Response[F](Status.BadRequest).withEntity(parseFailure.sanitized)
-    toHttpResponse(response, responseFuture)
+    toHttpResponse(response, writer)
   }
 
   /** Converts http4s' [[Response]] to Armeria's [[HttpResponse]]. */
-  private def toHttpResponse(
-      response: Response[F],
-      responseFuture: CompletableFuture[HttpResponse]): F[Unit] = {
+  private def toHttpResponse(response: Response[F], writer: HttpResponseWriter): F[Unit] = {
     val headers = toResponseHeaders(response.headers, response.status.some)
     val body = response.body
     if (body == EmptyBody) {
-      responseFuture.complete(HttpResponse.of(headers))
+      writer.write(headers)
+      writer.close()
       F.unit
     } else {
-      val writer = HttpResponse.streaming()
       writer.write(headers)
-      responseFuture.complete(writer)
       writeOnDemand(writer, body).stream
         .onFinalize(response.trailerHeaders.map { trailers =>
           if (!trailers.isEmpty)
