@@ -13,8 +13,10 @@ import cats.implicits._
 import com.linecorp.armeria.common.{
   HttpData,
   HttpHeaderNames,
+  HttpMethod,
   HttpRequest,
   HttpResponse,
+  HttpResponseWriter,
   ResponseHeaders
 }
 import com.linecorp.armeria.common.util.Version
@@ -26,7 +28,7 @@ import java.net.InetSocketAddress
 import java.util.concurrent.CompletableFuture
 import org.http4s.internal.CollectionCompat.CollectionConverters._
 import org.http4s.internal.unsafeRunAsync
-import ArmeriaHttp4sHandler.defaultVault
+import ArmeriaHttp4sHandler.{RightUnit, defaultVault, toHttp4sMethod}
 import org.http4s.server.{
   DefaultServiceErrorHandler,
   SecureSession,
@@ -44,55 +46,83 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 )(implicit F: ConcurrentEffect[F])
     extends HttpService {
 
+  val prefixLength = if (prefix.endsWith("/")) prefix.length - 1 else prefix.length
   // micro-optimization: unwrap the service and call its .run directly
   private val serviceFn: Request[F] => F[Response[F]] = service.run
 
   override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
     implicit val ec = ExecutionContext.fromExecutor(ctx.eventLoop())
     val future = new CompletableFuture[HttpResponse]()
-    unsafeRunAsync(toRequest(ctx, req).fold(onParseFailure, handleRequest)) {
-      case Right(res) =>
-        IO.pure(discardReturn(future.complete(res)))
+    unsafeRunAsync(toRequest(ctx, req).fold(onParseFailure(_, future), handleRequest(_, future))) {
+      case Right(_) =>
+        IO.unit
       case Left(ex) =>
-        IO.pure(discardReturn(future.completeExceptionally(ex)))
+        discardReturn(future.completeExceptionally(ex))
+        IO.unit
     }
     HttpResponse.from(future)
   }
 
-  private def handleRequest(request: Request[F]): F[HttpResponse] =
+  private def handleRequest(
+      request: Request[F],
+      responseFuture: CompletableFuture[HttpResponse]): F[Unit] =
     serviceFn(request)
       .recoverWith(serviceErrorHandler(request))
-      .map(toHttpResponse)
+      .flatMap(toHttpResponse(_, responseFuture))
 
-  private def onParseFailure(parseFailure: ParseFailure): F[HttpResponse] = {
+  private def onParseFailure(
+      parseFailure: ParseFailure,
+      responseFuture: CompletableFuture[HttpResponse]): F[Unit] = {
     val response = Response[F](Status.BadRequest).withEntity(parseFailure.sanitized)
-    F.pure(toHttpResponse(response))
+    toHttpResponse(response, responseFuture)
   }
 
   /** Converts http4s' [[Response]] to Armeria's [[HttpResponse]]. */
-  private def toHttpResponse(response: Response[F]): HttpResponse = {
-    val headers = Stream(toResponseHeaders(response.headers, response.status.some))
-    val body: Stream[F, HttpData] = response.body.chunks.map { chunk =>
-      val bytes = chunk.toBytes
-      HttpData.copyOf(bytes.values, bytes.offset, bytes.length)
+  private def toHttpResponse(
+      response: Response[F],
+      responseFuture: CompletableFuture[HttpResponse]): F[Unit] = {
+    val headers = toResponseHeaders(response.headers, response.status.some)
+    val body = response.body
+    if (body == EmptyBody) {
+      responseFuture.complete(HttpResponse.of(headers))
+      F.unit
+    } else {
+      val writer = HttpResponse.streaming()
+      writer.write(headers)
+      responseFuture.complete(writer)
+      writeOnDemand(writer, body).stream
+        .onFinalize(response.trailerHeaders.map { trailers =>
+          if (!trailers.isEmpty)
+            writer.writer(toResponseHeaders(trailers, None))
+          writer.close()
+        })
+        .compile
+        .drain
     }
-    val trailers = Stream
-      .eval(response.trailerHeaders)
-      .flatMap { trailers =>
-        if (trailers.isEmpty)
-          Stream.empty
-        else
-          Stream(toResponseHeaders(trailers, None))
-      }
-
-    HttpResponse.of((headers ++ body ++ trailers).toUnicastPublisher)
   }
+
+  private def writeOnDemand(
+      writer: HttpResponseWriter,
+      body: Stream[F, Byte]): Pull[F, INothing, Unit] =
+    body.pull.uncons.flatMap {
+      case Some((head, tail)) =>
+        val bytes = head.toBytes
+        writer.write(HttpData.wrap(bytes.values, bytes.offset, bytes.length))
+        if (tail == Stream.empty)
+          Pull.done
+        else
+          Pull.eval(F.async[Unit] { cb =>
+            discardReturn(writer.whenConsumed().thenRun(() => cb(RightUnit)))
+          }) >> writeOnDemand(writer, tail)
+      case None =>
+        Pull.done
+    }
 
   /** Converts Armeria's [[HttpRequest]] to http4s' [[Request]]. */
   private def toRequest(ctx: ServiceRequestContext, req: HttpRequest): ParseResult[Request[F]] = {
     val path = req.path()
     for {
-      method <- Method.fromString(req.method().name())
+      method <- toHttp4sMethod(req.method())
       uri <- Uri.requestTarget(path)
     } yield Request(
       method = method,
@@ -139,7 +169,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
   private def requestAttributes(ctx: ServiceRequestContext): Vault = {
     val secure = ctx.sessionProtocol().isTls
     defaultVault
-      .insert(Request.Keys.PathInfoCaret, prefix.length)
+      .insert(Request.Keys.PathInfoCaret, prefixLength)
       .insert(ServiceRequestContexts.Key, ctx)
       .insert(
         Request.Keys.ConnectionInfo,
@@ -182,6 +212,32 @@ private[armeria] object ArmeriaHttp4sHandler {
     ServerSoftware("armeria", Some(Version.get("armeria").artifactVersion()))
 
   private val defaultVault: Vault = Vault.empty.insert(Request.Keys.ServerSoftware, serverSoftware)
+
+  private val OPTIONS: ParseResult[Method] = Right(Method.OPTIONS)
+  private val GET: ParseResult[Method] = Right(Method.GET)
+  private val HEAD: ParseResult[Method] = Right(Method.HEAD)
+  private val POST: ParseResult[Method] = Right(Method.POST)
+  private val PUT: ParseResult[Method] = Right(Method.PUT)
+  private val PATCH: ParseResult[Method] = Right(Method.PATCH)
+  private val DELETE: ParseResult[Method] = Right(Method.DELETE)
+  private val TRACE: ParseResult[Method] = Right(Method.TRACE)
+  private val CONNECT: ParseResult[Method] = Right(Method.CONNECT)
+
+  private val RightUnit = Right(())
+
+  private def toHttp4sMethod(method: HttpMethod): ParseResult[Method] =
+    method match {
+      case HttpMethod.OPTIONS => OPTIONS
+      case HttpMethod.GET => GET
+      case HttpMethod.HEAD => HEAD
+      case HttpMethod.POST => POST
+      case HttpMethod.PUT => PUT
+      case HttpMethod.PATCH => PATCH
+      case HttpMethod.DELETE => DELETE
+      case HttpMethod.TRACE => TRACE
+      case HttpMethod.CONNECT => CONNECT
+      case HttpMethod.UNKNOWN => Left(ParseFailure("Invalid method", method.name()))
+    }
 }
 
 object ServiceRequestContexts {
