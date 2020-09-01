@@ -13,6 +13,7 @@ import cats.implicits._
 import com.linecorp.armeria.common.{
   HttpData,
   HttpHeaderNames,
+  HttpHeaders,
   HttpMethod,
   HttpRequest,
   HttpResponse,
@@ -76,24 +77,25 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 
   /** Converts http4s' [[Response]] to Armeria's [[HttpResponse]]. */
   private def toHttpResponse(response: Response[F], writer: HttpResponseWriter): F[Unit] = {
-    val headers = toResponseHeaders(response.headers, response.status.some)
+    val headers = toHttpHeaders(response.headers, response.status.some)
+    writer.write(headers)
     val body = response.body
     if (body == EmptyBody) {
-      writer.write(headers)
       writer.close()
       F.unit
-    } else {
-      writer.write(headers)
+    } else
       writeOnDemand(writer, body).stream
-        .onFinalize(response.trailerHeaders.map { trailers =>
-          if (!trailers.isEmpty)
-            writer.writer(toResponseHeaders(trailers, None))
-          writer.close()
-        })
+        .onFinalize(maybeWriteTrailersAndClose(writer, response))
         .compile
         .drain
-    }
   }
+
+  private def maybeWriteTrailersAndClose(writer: HttpResponseWriter, response: Response[F]) =
+    response.trailerHeaders.map { trailers =>
+      if (!trailers.isEmpty)
+        writer.write(toHttpHeaders(trailers, None))
+      writer.close()
+    }
 
   private def writeOnDemand(
       writer: HttpResponseWriter,
@@ -134,9 +136,9 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
     )
   }
 
-  /** Converts http4s' [[Headers]] to Armeria's [[ResponseHeaders]]. */
-  private def toResponseHeaders(headers: Headers, status: Option[Status]): ResponseHeaders = {
-    val builder = status.fold(ResponseHeaders.builder())(s => ResponseHeaders.builder(s.code))
+  /** Converts http4s' [[Headers]] to Armeria's [[HttpHeaders]]. */
+  private def toHttpHeaders(headers: Headers, status: Option[Status]): HttpHeaders = {
+    val builder = status.fold(HttpHeaders.builder())(s => ResponseHeaders.builder(s.code))
 
     for (header <- headers.toList)
       builder.add(header.name.toString, header.value)
