@@ -14,7 +14,7 @@ import com.linecorp.armeria.common.HttpStatus
 import com.linecorp.armeria.server.logging.{ContentPreviewingService, LoggingService}
 import java.net.{HttpURLConnection, URL}
 import java.nio.charset.StandardCharsets
-import org.http4s.HttpRoutes
+import org.http4s.{Header, Headers, HttpRoutes}
 import org.http4s.dsl.io._
 import org.http4s.multipart.Multipart
 import org.scalatest.funsuite.AnyFunSuite
@@ -34,6 +34,10 @@ class ArmeriaServerBuilderSpec extends AnyFunSuite with IOServerFixture with Mat
 
     case req @ POST -> Root / "echo" =>
       Ok(req.body)
+
+    case GET -> Root / "trailers" =>
+      Ok("Hello").map(response =>
+        response.withTrailerHeaders(IO(Headers.of(Header("my-trailers", "foo")))))
 
     case _ -> Root / "never" =>
       IO.never
@@ -85,6 +89,12 @@ class ArmeriaServerBuilderSpec extends AnyFunSuite with IOServerFixture with Mat
       .aggregate()
       .join()
       .contentUtf8() must startWith(input)
+  }
+
+  test("be able to send trailers") {
+    val response = client.get("/service/trailers").aggregate().join()
+    response.status() must be(HttpStatus.OK)
+    response.trailers().get("my-trailers") must be("foo")
   }
 
   test("return a 503 if the server doesn't respond") {
