@@ -17,7 +17,8 @@ import com.linecorp.armeria.common.{
   HttpMethod,
   HttpRequest,
   HttpResponse,
-  RequestHeaders
+  RequestHeaders,
+  ResponseHeaders
 }
 import fs2.interop.reactivestreams._
 import fs2.{Chunk, Stream}
@@ -73,13 +74,16 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
   }
 
   /** Converts [[java.util.concurrent.CompletableFuture]] to `F[_]` */
-  def fromCompletableFuture[A](completableFuture: CompletableFuture[A]): F[A] =
-    F.async[A] { cb =>
-      val _ = completableFuture.handle { (result, cause) =>
-        if (cause != null)
-          cb(Left(cause))
-        else
-          cb(Right(result))
+  private def fromCompletableFuture(
+      completableFuture: CompletableFuture[ResponseHeaders]): F[ResponseHeaders] =
+    F.async[ResponseHeaders] { cb =>
+      val _ = completableFuture.handle {
+        case (result, ex) =>
+          if (ex != null)
+            cb(Left(ex))
+          else
+            cb(Right(result))
+          null
       }
     }
 
