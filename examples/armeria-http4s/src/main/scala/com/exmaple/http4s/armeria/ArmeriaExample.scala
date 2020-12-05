@@ -25,7 +25,7 @@ object ArmeriaExampleApp {
       .bindHttp(8080)
       .withMeterRegistry(registry)
       .withHttpRoutes("/http4s", ExampleService[F].routes())
-      .withHttpService("/metrics", new PrometheusExpositionService(prometheusRegistry))
+      .withHttpService("/metrics", PrometheusExpositionService.of(prometheusRegistry))
       .withDecorator(
         MetricCollectingService.newDecorator(MeterIdPrefixFunction.ofDefault("server")))
       .withDecoratorUnder("/black-knight", new NoneShallPass(_))
