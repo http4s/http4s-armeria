@@ -77,13 +77,12 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
   private def fromCompletableFuture(
       completableFuture: CompletableFuture[ResponseHeaders]): F[ResponseHeaders] =
     F.async[ResponseHeaders] { cb =>
-      val _ = completableFuture.handle {
-        case (result, ex) =>
-          if (ex != null)
-            cb(Left(ex))
-          else
-            cb(Right(result))
-          null
+      val _ = completableFuture.handle { (result, ex) =>
+        if (ex != null)
+          cb(Left(ex))
+        else
+          cb(Right(result))
+        null
       }
     }
 
