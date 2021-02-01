@@ -48,7 +48,7 @@ class HelloServiceTest extends AnyFunSuite with BeforeAndAfterAll with Matchers 
 
   test("serverStream") {
     val response = client.serverStreaming(HelloRequest(message)).collectSeq().block()
-    val expected = (1 to 5).map(i => HelloRequest(s"Hello $message $i!"))
+    val expected = (1 to 5).map(i => HelloReply(s"Hello $message $i!"))
     response must be(expected)
   }
 

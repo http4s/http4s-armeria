@@ -3,18 +3,19 @@ package armeria
 package client
 
 import cats.effect.IO
-import com.linecorp.armeria.client.circuitbreaker.{
-  CircuitBreaker,
-  CircuitBreakerClient,
-  CircuitBreakerRule
+import com.linecorp.armeria.client.logging.{ContentPreviewingClient, LoggingClient}
+import com.linecorp.armeria.common.{
+  HttpData,
+  HttpRequest,
+  HttpResponse,
+  HttpStatus,
+  ResponseHeaders
 }
-import com.linecorp.armeria.client.logging.LoggingClient
-import com.linecorp.armeria.client.retry.{RetryRule, RetryingClient}
-import com.linecorp.armeria.common._
 import com.linecorp.armeria.server.logging.{ContentPreviewingService, LoggingService}
 import com.linecorp.armeria.server.{HttpService, Server, ServiceRequestContext}
 import fs2._
 import fs2.interop.reactivestreams._
+import org.http4s
 import org.http4s.client.Client
 import org.http4s.implicits.http4sLiteralsSyntax
 import org.scalatest.BeforeAndAfterAll
@@ -111,7 +112,7 @@ class ArmeriaClientSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll
       .withDecorator(ContentPreviewingClient.newDecorator(Int.MaxValue))
       .withDecorator(LoggingClient.newDecorator())
       .withResponseTimeout(10.seconds)
-      .build
+      .build()
   }
 
   override protected def afterAll(): Unit = {
@@ -157,7 +158,7 @@ class ArmeriaClientSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll
       .map(_.toString)
       .through(text.utf8Encode)
 
-    val req = Request(method = Method.POST, uri = uri"/bidi-streaming", body = body)
+    val req = http4s.Request(method = Method.POST, uri = uri"/bidi-streaming", body = body)
     val response = client
       .stream(req)
       .flatMap(res => res.bodyText)
