@@ -72,7 +72,7 @@ val client: Client[IO] =
   ArmeriaClientBuilder
     .unsafe[IO](s"http://127.0.0.1:${server.activeLocalPort()}")
     // Automically retry on unprocessed requests
-    .withDecorator(RetryingClient.newDecorator(RetryRule.failsafe()))
+    .withDecorator(RetryingClient.newDecorator(RetryRule.onUnprocessed()))
     // Open circuit on 5xx server error status
     .withDecorator(CircuitBreakerClient.newDecorator(CircuitBreaker.ofDefaultName(),
                                                      CircuitBreakerRule.onServerErrorStatus()))
