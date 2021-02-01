@@ -158,7 +158,7 @@ class ArmeriaClientSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll
       .map(_.toString)
       .through(text.utf8Encode)
 
-    val req = http4s.Request(method = Method.POST, uri = uri"/bidi-streaming", body = body)
+    val req = Request(method = Method.POST, uri = uri"/bidi-streaming", body = body)
     val response = client
       .stream(req)
       .flatMap(res => res.bodyText)
