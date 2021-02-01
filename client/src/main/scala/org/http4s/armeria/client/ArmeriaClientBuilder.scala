@@ -33,7 +33,7 @@ sealed class ArmeriaClientBuilder[F[_]] private (clientBuilder: WebClientBuilder
   }
 
   /** Sets the [[com.linecorp.armeria.client.ClientFactory]] used for creating a client.
-    * The default is [[com.linecorp.armeria.client.ClientFactory.ofDefault]].
+    * The default is `com.linecorp.armeria.client.ClientFactory.ofDefault()`.
     */
   def withClientFactory(clientFactory: ClientFactory): ArmeriaClientBuilder[F] = {
     clientBuilder.factory(clientFactory)
@@ -42,7 +42,7 @@ sealed class ArmeriaClientBuilder[F[_]] private (clientBuilder: WebClientBuilder
 
   /** Sets the timeout of a response.
     *
-    * @param responseTimeout the timeout. [[scala.concurrent.duration.Duration.Zero]] disables the timeout.
+    * @param responseTimeout the timeout. `scala.concurrent.duration.Duration.Zero` disables the timeout.
     */
   def withResponseTimeout(responseTimeout: FiniteDuration): ArmeriaClientBuilder[F] = {
     clientBuilder.responseTimeoutMillis(responseTimeout.toMillis)
@@ -51,7 +51,7 @@ sealed class ArmeriaClientBuilder[F[_]] private (clientBuilder: WebClientBuilder
 
   /** Sets the timeout of a socket write attempt.
     *
-    * @param writeTimeout the timeout. [[scala.concurrent.duration.Duration.Zero]] disables the timeout.
+    * @param writeTimeout the timeout. `scala.concurrent.duration.Duration.Zero` disables the timeout.
     */
   def withWriteTimeout(writeTimeout: FiniteDuration): ArmeriaClientBuilder[F] = {
     clientBuilder.writeTimeoutMillis(writeTimeout.toMillis)
@@ -97,7 +97,7 @@ sealed class ArmeriaClientBuilder[F[_]] private (clientBuilder: WebClientBuilder
 
   /** Adds the specified `decorator`.
     *
-    * @param decorator the [[java.util.function.Function]] that transforms an
+    * @param decorator the `java.util.function.Function` that transforms an
     *                  [[com.linecorp.armeria.client.HttpClient]] to another.
     */
   def withDecorator(
@@ -128,8 +128,8 @@ object ArmeriaClientBuilder {
   /** Returns a new [[ArmeriaClientBuilder]] created with the specified base [[java.net.URI]].
     *
     * @return `Left(IllegalArgumentException)` if the `uri` is not valid or its scheme is not one of the values
-    *         values in [[com.linecorp.armeria.common.SessionProtocol.httpValues]] or
-    *         [[com.linecorp.armeria.common.SessionProtocol.httpsValues]], else
+    *         values in `com.linecorp.armeria.common.SessionProtocol.httpValues()` or
+    *         `com.linecorp.armeria.common.SessionProtocol.httpsValues()`, else
     *         `Right(ArmeriaClientBuilder)`.
     */
   def apply[F[_]](uri: String)(implicit
@@ -142,8 +142,8 @@ object ArmeriaClientBuilder {
   /** Returns a new [[ArmeriaClientBuilder]] created with the specified base [[java.net.URI]].
     *
     * @throws scala.IllegalArgumentException if the `uri` is not valid or its scheme is not one of the values
-    *                                  in [[com.linecorp.armeria.common.SessionProtocol.httpValues]] or
-    *                                  [[com.linecorp.armeria.common.SessionProtocol.httpsValues]].
+    *                                        in `com.linecorp.armeria.common.SessionProtocol.httpValues()` or
+    *                                        `com.linecorp.armeria.common.SessionProtocol.httpsValues()`.
     */
   def unsafe[F[_]](uri: String)(implicit F: ConcurrentEffect[F]): ArmeriaClientBuilder[F] =
     apply(WebClient.builder(uri))
@@ -151,8 +151,8 @@ object ArmeriaClientBuilder {
   /** Returns a new [[ArmeriaClientBuilder]] created with the specified base [[java.net.URI]].
     *
     * @return `Left(IllegalArgumentException)` if the [[java.net.URI]] is not valid or its scheme is not one of the
-    *          values in [[com.linecorp.armeria.common.SessionProtocol.httpValues]] or
-    *          [[com.linecorp.armeria.common.SessionProtocol.httpsValues]], else
+    *          values in `com.linecorp.armeria.common.SessionProtocol.httpValues()` or
+    *          `com.linecorp.armeria.common.SessionProtocol.httpsValues()`, else
     *          `Right(ArmeriaClientBuilder)`.
     */
   def apply[F[_]](uri: URI)(implicit
@@ -165,8 +165,8 @@ object ArmeriaClientBuilder {
   /** Returns a new [[ArmeriaClientBuilder]] created with the specified base [[java.net.URI]].
     *
     * @throws scala.IllegalArgumentException if the [[java.net.URI]] is not valid or its scheme is not one of the values
-    *                                  values in [[com.linecorp.armeria.common.SessionProtocol.httpValues]] or
-    *                                  [[com.linecorp.armeria.common.SessionProtocol.httpsValues]].
+    *                                        values in `com.linecorp.armeria.common.SessionProtocol.httpValues()` or
+    *                                        `com.linecorp.armeria.common.SessionProtocol.httpsValues()`.
     */
   def unsafe[F[_]](uri: URI)(implicit F: ConcurrentEffect[F]): ArmeriaClientBuilder[F] =
     apply(WebClient.builder(uri))

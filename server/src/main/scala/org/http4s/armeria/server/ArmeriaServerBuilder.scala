@@ -176,7 +176,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
 
   /** Sets the idle timeout of a connection in milliseconds for keep-alive.
     *
-    * @param idleTimeout the timeout. [[scala.concurrent.duration.Duration.Zero]] disables the timeout.
+    * @param idleTimeout the timeout. `scala.concurrent.duration.Duration.Zero` disables the timeout.
     */
   def withIdleTimeout(idleTimeout: FiniteDuration): Self = {
     armeriaServerBuilder.idleTimeoutMillis(idleTimeout.toMillis)
@@ -185,7 +185,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
 
   /** Sets the timeout of a request.
     *
-    * @param requestTimeout the timeout. [[scala.concurrent.duration.Duration.Zero]] disables the timeout.
+    * @param requestTimeout the timeout. `scala.concurrent.duration.Duration.Zero` disables the timeout.
     */
   def withRequestTimeout(requestTimeout: FiniteDuration): Self = {
     armeriaServerBuilder.requestTimeoutMillis(requestTimeout.toMillis)
@@ -293,7 +293,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     * requests to go away before actually shutting down.
     *
     * @param quietPeriod the number of milliseconds to wait for active
-    *                    requests to go end before shutting down. [[scala.concurrent.duration.Duration.Zero]] means
+    *                    requests to go end before shutting down. `scala.concurrent.duration.Duration.Zero` means
     *                    the server will stop right away without waiting.
     * @param timeout     the amount of time to wait before shutting down the server regardless of active
     *                    requests.
