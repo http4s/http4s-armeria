@@ -1,5 +1,9 @@
 # http4s-armeria
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.http4s/http4s-armeria-server_2.13/badge.svg)](https://search.maven.org/search?q=http4s-armeria)
+[![Build Status](https://github.com/http4s/http4s-armeria/workflows/Build%20Pull%20Requests/badge.svg?branch=main)](https://github.com/http4s/http4s-armeria/actions?query=workflow%3A"Build+c+Requests")
+
+
 [Http4s] server and client on [Armeria]
 
 ## Highlights
@@ -51,7 +55,7 @@ object ArmeriaExampleApp {
       .withHttpRoutes("/http4s", ExampleService[F].routes())
       // Adds PrometheusExpositionService provided by Armeria for exposing Prometheus metrics
       .withHttpService("/metrics", PrometheusExpositionService.of(prometheusRegistry))
-      // Decorates your services with MetricCollectingService for collectiong metrics
+      // Decorates your services with MetricCollectingService for collecting metrics
       .withDecorator(
         MetricCollectingService.newDecorator(MeterIdPrefixFunction.ofDefault("server")))
   }
@@ -79,6 +83,8 @@ val client: Client[IO] =
     
 val response = client.expect[String]("Armeria").unsafeRunSync()
 ```
+
+Visit [examples](./examples) to find a fully working example.
 
 [http4s]: https://http4s.org/
 [armeria]: https://armeria.dev/
