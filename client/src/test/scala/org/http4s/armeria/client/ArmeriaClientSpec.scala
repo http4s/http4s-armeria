@@ -15,7 +15,6 @@ import com.linecorp.armeria.server.logging.{ContentPreviewingService, LoggingSer
 import com.linecorp.armeria.server.{HttpService, Server, ServiceRequestContext}
 import fs2._
 import fs2.interop.reactivestreams._
-import org.http4s
 import org.http4s.client.Client
 import org.http4s.implicits.http4sLiteralsSyntax
 import org.scalatest.BeforeAndAfterAll
