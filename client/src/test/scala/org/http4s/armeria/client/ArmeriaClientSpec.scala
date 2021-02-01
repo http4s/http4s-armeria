@@ -111,7 +111,7 @@ class ArmeriaClientSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll
       .withDecorator(ContentPreviewingClient.newDecorator(Int.MaxValue))
       .withDecorator(LoggingClient.newDecorator())
       .withResponseTimeout(10.seconds)
-      .build
+      .build()
   }
 
   override protected def afterAll(): Unit = {

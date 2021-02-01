@@ -12,3 +12,5 @@ src_managed/
 project/boot/
 project/plugins/project/
 test-output/
+
+.bsp/

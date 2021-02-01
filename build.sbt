@@ -1,9 +1,9 @@
+import sbt.Keys.libraryDependencies
 import sbtrelease.ReleasePlugin.autoImport._
 
 inThisBuild(
   Seq(
     organization := "org.http4s",
-    name := "http4s-armeria",
     crossScalaVersions := Seq("2.13.4", "2.12.11"),
     scalaVersion := crossScalaVersions.value.head,
     homepage := Some(url("https://github.com/http4s/http4s-armeria")),
@@ -14,11 +14,11 @@ inThisBuild(
 )
 
 val versions = new {
-  val armeria = "1.3.0"
-  val fs2 = "2.4.6"
-  val http4s = "0.21.13"
+  val armeria = "1.4.0"
+  val fs2 = "2.5.0"
+  val http4s = "0.21.16"
   val logback = "1.2.3"
-  val micrometer = "1.6.1"
+  val micrometer = "1.6.3"
   val scalaTest = "3.2.3"
 }
 
@@ -75,8 +75,22 @@ lazy val exampleArmeriaHttp4s = project
 lazy val exampleArmeriaScalaPB = project
   .in(file("examples/armeria-scalapb"))
   .settings(
-    name := "examples-armeria-scalapb"
+    name := "examples-armeria-scalapb",
+    libraryDependencies ++= List(
+      "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
+      "com.linecorp.armeria" % "armeria-grpc" % versions.armeria,
+      "com.linecorp.armeria" %% "armeria-scalapb" % versions.armeria,
+      "org.http4s" %% "http4s-dsl" % versions.http4s,
+      "org.scalatest" %% "scalatest" % versions.scalaTest % Test
+    ),
+    PB.targets in Compile := Seq(
+      scalapb.gen() -> (sourceManaged in Compile).value,
+      scalapb.reactor.ReactorCodeGenerator -> (sourceManaged in Compile).value
+    )
   )
+  .enablePlugins(PrivateProjectPlugin)
+  .disablePlugins(TpolecatPlugin)
+  .dependsOn(server)
 
 lazy val publishSettings = List(
   scmInfo := Some(

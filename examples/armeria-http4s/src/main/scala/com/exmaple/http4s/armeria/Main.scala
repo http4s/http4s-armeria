@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 http4s.org
+ * Copyright 2020-2021 http4s.org
  *
  * SPDX-License-Identifier: Apache-2.0
  */

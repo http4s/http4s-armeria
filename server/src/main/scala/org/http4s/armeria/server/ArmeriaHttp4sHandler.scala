@@ -35,7 +35,7 @@ import org.http4s.server.{
   ServerRequestKeys,
   ServiceErrorHandler
 }
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scodec.bits.ByteVector
 
 /** An [[HttpService]] that handles the specified [[HttpApp]] under the specified `prefix`. */
@@ -51,7 +51,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
   private val serviceFn: Request[F] => F[Response[F]] = service.run
 
   override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
-    implicit val ec = ExecutionContext.fromExecutor(ctx.eventLoop())
+    implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(ctx.eventLoop())
     val responseWriter = HttpResponse.streaming()
     unsafeRunAsync(
       toRequest(ctx, req)
@@ -159,8 +159,10 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
   private def toBody(req: HttpRequest): EntityBody[F] =
     req
       .toStream[F]
-      .collect { case x: HttpData => Chunk.bytes(x.array()) }
-      .flatMap(Stream.chunk)
+      .flatMap { obj =>
+        val data = obj.asInstanceOf[HttpData]
+        Stream.chunk(Chunk.bytes(data.array()))
+      }
 
   private def requestAttributes(ctx: ServiceRequestContext): Vault = {
     val secure = ctx.sessionProtocol().isTls

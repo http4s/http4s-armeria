@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package com.exmaple.http4s
-package armeria
+package com.example.scalapb.armeria
 
 import cats.effect._
 import com.linecorp.armeria.common.util.TimeoutMode
