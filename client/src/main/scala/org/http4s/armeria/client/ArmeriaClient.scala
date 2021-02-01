@@ -68,8 +68,7 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
         splitResponse
           .body()
           .toStream
-          .map(x => Chunk.bytes(x.array()))
-          .flatMap(Stream.chunk(_))
+          .flatMap(x => Stream.chunk(Chunk.bytes(x.array())))
     } yield Response(status = status, headers = toHeaders(headers), body = body)
   }
 

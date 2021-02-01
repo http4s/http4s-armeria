@@ -3,14 +3,14 @@ package armeria
 package client
 
 import cats.effect.IO
-import com.linecorp.armeria.client.logging.{ContentPreviewingClient, LoggingClient}
-import com.linecorp.armeria.common.{
-  HttpData,
-  HttpRequest,
-  HttpResponse,
-  HttpStatus,
-  ResponseHeaders
+import com.linecorp.armeria.client.circuitbreaker.{
+  CircuitBreaker,
+  CircuitBreakerClient,
+  CircuitBreakerRule
 }
+import com.linecorp.armeria.client.logging.LoggingClient
+import com.linecorp.armeria.client.retry.{RetryRule, RetryingClient}
+import com.linecorp.armeria.common._
 import com.linecorp.armeria.server.logging.{ContentPreviewingService, LoggingService}
 import com.linecorp.armeria.server.{HttpService, Server, ServiceRequestContext}
 import fs2._

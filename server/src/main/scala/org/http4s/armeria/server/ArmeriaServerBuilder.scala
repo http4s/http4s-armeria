@@ -12,6 +12,7 @@ import com.linecorp.armeria.common.util.Version
 import com.linecorp.armeria.common.{HttpRequest, HttpResponse, SessionProtocol}
 import com.linecorp.armeria.server.{
   HttpService,
+  HttpServiceWithRoutes,
   ServerListenerAdapter,
   ServiceRequestContext,
   Server => BackendServer,
@@ -105,7 +106,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     this
   }
 
-  /** Binds the specified [[HttpService]] at the specified path pattern.
+  /** Binds the specified [[com.linecorp.armeria.server.HttpService]] at the specified path pattern.
     * See [[https://armeria.dev/docs/server-basics#path-patterns]] for detailed information of path pattens.
     */
   def withHttpService(pathPattern: String, service: HttpService): Self = {
@@ -113,11 +114,27 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     this
   }
 
-  /** Binds the specified [[HttpRoutes]] under the specified prefix. */
+  /** Binds the specified [[com.linecorp.armeria.server.HttpServiceWithRoutes]]
+    * at multiple [[com.linecorp.armeria.server.Route]]s
+    * of the default [[com.linecorp.armeria.server.VirtualHost]].
+    */
+  def withHttpService(serviceWithRoutes: HttpServiceWithRoutes): Self = {
+    armeriaServerBuilder.service(serviceWithRoutes)
+    this
+  }
+
+  /** Binds the specified [[com.linecorp.armeria.server.HttpService]] under the specified directory.
+    */
+  def withHttpServiceUnder(prefix: String, service: HttpService): Self = {
+    armeriaServerBuilder.serviceUnder(prefix, service)
+    this
+  }
+
+  /** Binds the specified [[org.http4s.HttpRoutes]] under the specified prefix. */
   def withHttpRoutes(prefix: String, service: HttpRoutes[F]): Self =
     withHttpApp(prefix, service.orNotFound)
 
-  /** Binds the specified [[HttpApp]] under the specified prefix. */
+  /** Binds the specified [[org.http4s.HttpApp]] under the specified prefix. */
   def withHttpApp(prefix: String, service: HttpApp[F]): Self = {
     armeriaServerBuilder.serviceUnder(prefix, ArmeriaHttp4sHandler(prefix, service))
     this
@@ -322,7 +339,10 @@ trait ArmeriaServer[F[_]] extends Server[F] {
   def server: BackendServer
 }
 
+/** A builder that builds Armeria server for Http4s. */
 object ArmeriaServerBuilder {
+
+  /** Returns a newly created [[org.http4s.armeria.server.ArmeriaServerBuilder]]. */
   def apply[F[_]: ConcurrentEffect]: ArmeriaServerBuilder[F] = {
     val defaultServerBuilder =
       BackendServer

@@ -109,10 +109,10 @@ sealed class ArmeriaClientBuilder[F[_]] private (clientBuilder: WebClientBuilder
   /** Returns a newly-created http4s [[org.http4s.client.Client]] based on
     * Armeria [[com.linecorp.armeria.client.WebClient]].
     */
-  def build: Client[F] = ArmeriaClient(clientBuilder.build())
+  def build(): Client[F] = ArmeriaClient(clientBuilder.build())
 
   override def resource: Resource[F, Client[F]] =
-    Resource.pure(build)
+    Resource.pure(build())
 }
 
 /** A builder class that builds http4s [[org.http4s.client.Client]] based on
