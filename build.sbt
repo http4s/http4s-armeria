@@ -1,4 +1,4 @@
-import sbt.Keys.{libraryDependencies, resolvers}
+import sbt.Keys.libraryDependencies
 import sbtrelease.ReleasePlugin.autoImport._
 
 inThisBuild(
