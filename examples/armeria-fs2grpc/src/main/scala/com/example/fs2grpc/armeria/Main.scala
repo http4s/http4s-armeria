@@ -4,15 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package com.example.scalapb.armeria
+package com.example.fs2grpc.armeria
 
 import cats.effect.{ExitCode, IO, IOApp, Resource}
 import com.linecorp.armeria.common.scalapb.ScalaPbJsonMarshaller
 import com.linecorp.armeria.server.docs.{DocService, DocServiceFilter}
 import com.linecorp.armeria.server.grpc.GrpcService
 import com.linecorp.armeria.server.logging.LoggingService
-import example.armeria.grpc.hello.ReactorHelloServiceGrpc.ReactorHelloService
-import example.armeria.grpc.hello.{HelloRequest, HelloServiceGrpc}
+import example.armeria.grpc.hello.{HelloRequest, HelloServiceFs2Grpc, HelloServiceGrpc}
 import io.grpc.reflection.v1alpha.ServerReflectionGrpc
 import org.http4s.armeria.server.{ArmeriaServer, ArmeriaServerBuilder}
 import org.slf4j.LoggerFactory
@@ -26,10 +25,7 @@ object Main extends IOApp {
     newServer(8080)
       .use { armeria =>
         logger.info(
-          s"Server has been started. Serving DocService at http://127.0.0.1:${
-            armeria.server.activeLocalPort
-            ()
-          }/docs"
+          s"Server has been started. Serving DocService at http://127.0.0.1:${armeria.server.activeLocalPort()}/docs"
         )
         IO.never
       }
@@ -40,10 +36,10 @@ object Main extends IOApp {
     val grpcService = GrpcService
       .builder()
       // TODO(ikhoon): Support fs2-grpc with Armeria gRPC server and client.
-      .addService(ReactorHelloService.bindService(new HelloServiceImpl))
+      .addService(HelloServiceFs2Grpc.bindService(new HelloServiceImpl))
       // Register ScalaPbJsonMarshaller to support gRPC JSON format
       .jsonMarshallerFactory(_ => ScalaPbJsonMarshaller())
-      //      .enableUnframedRequests(true)
+//      .enableUnframedRequests(true)
       .build()
 
     val exampleRequest = HelloRequest("Armeria")

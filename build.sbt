@@ -1,4 +1,4 @@
-import sbt.Keys.libraryDependencies
+import sbt.Keys.{libraryDependencies, resolvers}
 import sbtrelease.ReleasePlugin.autoImport._
 
 inThisBuild(
@@ -14,7 +14,7 @@ inThisBuild(
 )
 
 val versions = new {
-  val armeria = "1.4.0"
+  val armeria = "1.4.1-SNAPSHOT"
   val fs2 = "2.5.0"
   val http4s = "0.21.16"
   val logback = "1.2.3"
@@ -90,6 +90,21 @@ lazy val exampleArmeriaScalaPB = project
   )
   .enablePlugins(PrivateProjectPlugin)
   .disablePlugins(TpolecatPlugin)
+  .dependsOn(server)
+
+lazy val exampleArmeriaFs2Grpc = project
+  .in(file("examples/armeria-fs2grpc"))
+  .settings(
+    name := "examples-armeria-fs2grpc",
+    libraryDependencies ++= List(
+      "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
+      "com.linecorp.armeria" % "armeria-grpc" % versions.armeria,
+      "com.linecorp.armeria" %% "armeria-scalapb" % versions.armeria,
+      "org.http4s" %% "http4s-dsl" % versions.http4s,
+      "org.scalatest" %% "scalatest" % versions.scalaTest % Test
+    )
+  )
+  .enablePlugins(PrivateProjectPlugin, Fs2Grpc)
   .dependsOn(server)
 
 lazy val publishSettings = List(
