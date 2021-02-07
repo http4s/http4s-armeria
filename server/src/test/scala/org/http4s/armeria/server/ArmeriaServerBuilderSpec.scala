@@ -6,23 +6,29 @@
 
 package org.http4s.armeria.server
 
-import cats.effect.IO
+import cats.effect.concurrent.Deferred
+import cats.effect.{IO, Timer}
 import cats.implicits._
-import com.linecorp.armeria.client.{ClientFactory, WebClient}
 import com.linecorp.armeria.client.logging.LoggingClient
-import com.linecorp.armeria.common.HttpStatus
+import com.linecorp.armeria.client.{ClientFactory, WebClient}
+import com.linecorp.armeria.common.{HttpData, HttpStatus}
 import com.linecorp.armeria.server.logging.{ContentPreviewingService, LoggingService}
+import fs2._
 import java.net.{HttpURLConnection, URL}
 import java.nio.charset.StandardCharsets
-import org.http4s.{Header, Headers, HttpRoutes}
 import org.http4s.dsl.io._
 import org.http4s.multipart.Multipart
+import org.http4s.{Header, Headers, HttpRoutes}
+import org.reactivestreams.{Subscriber, Subscription}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.must.Matchers
+import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.io.Source
 
 class ArmeriaServerBuilderSpec extends AnyFunSuite with IOServerFixture with Matchers {
+
+  implicit val timer: Timer[IO] = IO.timer(scala.concurrent.ExecutionContext.Implicits.global)
 
   val service: HttpRoutes[IO] = HttpRoutes.of {
     case GET -> Root / "thread" / "routing" =>
@@ -41,6 +47,9 @@ class ArmeriaServerBuilderSpec extends AnyFunSuite with IOServerFixture with Mat
 
     case _ -> Root / "never" =>
       IO.never
+
+    case GET -> Root / "stream" =>
+      Ok(Stream.range(1, 10).map(_.toString).covary[IO])
 
     case req @ POST -> Root / "issue2610" =>
       req.decode[Multipart[IO]] { mp =>
@@ -118,6 +127,28 @@ class ArmeriaServerBuilderSpec extends AnyFunSuite with IOServerFixture with Mat
          |--aa--""".stripMargin.replace("\n", "\r\n")
 
     postChunkedMultipart("/service/issue2610", "aa", body) must be("a")
+  }
+
+  test("stream") {
+    val response = client.get("/service/stream")
+    val deferred = Deferred.unsafe[IO, Boolean]
+    val buffer = mutable.Buffer[String]()
+    response
+      .split()
+      .body()
+      .subscribe(new Subscriber[HttpData] {
+        override def onSubscribe(s: Subscription): Unit = s.request(Long.MaxValue)
+
+        override def onNext(t: HttpData): Unit =
+          buffer += t.toStringUtf8
+
+        override def onError(t: Throwable): Unit = {}
+
+        override def onComplete(): Unit =
+          deferred.complete(true).unsafeRunSync()
+      })
+    deferred.get.unsafeRunSync()
+    buffer.mkString("") must be("123456789")
   }
 
   private def postChunkedMultipart(path: String, boundary: String, body: String): String = {

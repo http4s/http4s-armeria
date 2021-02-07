@@ -27,15 +27,13 @@ import fs2._
 import fs2.interop.reactivestreams._
 import java.net.InetSocketAddress
 import org.http4s.internal.CollectionCompat.CollectionConverters._
-import ArmeriaHttp4sHandler.{RightUnit, defaultVault, toHttp4sMethod}
-import org.http4s.internal.unsafeRunAsync
+import ArmeriaHttp4sHandler.{RightUnit, canHasBody, defaultVault, toHttp4sMethod}
 import org.http4s.server.{
   DefaultServiceErrorHandler,
   SecureSession,
   ServerRequestKeys,
   ServiceErrorHandler
 }
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scodec.bits.ByteVector
 
 /** An [[HttpService]] that handles the specified [[HttpApp]] under the specified `prefix`. */
@@ -46,14 +44,13 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 )(implicit F: ConcurrentEffect[F])
     extends HttpService {
 
-  val prefixLength = if (prefix.endsWith("/")) prefix.length - 1 else prefix.length
+  val prefixLength: Int = if (prefix.endsWith("/")) prefix.length - 1 else prefix.length
   // micro-optimization: unwrap the service and call its .run directly
   private val serviceFn: Request[F] => F[Response[F]] = service.run
 
   override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
-    implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(ctx.eventLoop())
     val responseWriter = HttpResponse.streaming()
-    unsafeRunAsync(
+    F.runAsync(
       toRequest(ctx, req)
         .fold(onParseFailure(_, responseWriter), handleRequest(_, responseWriter))) {
       case Right(_) =>
@@ -61,7 +58,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       case Left(ex) =>
         discardReturn(responseWriter.close(ex))
         IO.unit
-    }
+    }.unsafeRunSync()
     responseWriter
   }
 
@@ -83,16 +80,28 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
     if (body == EmptyBody) {
       writer.close()
       F.unit
-    } else
+    } else if (response.contentLength.isDefined)
+      // non stream response
+      response.body.chunks.compile.toVector
+        .flatMap { vector =>
+          vector.foreach { chunk =>
+            val bytes = chunk.toBytes
+            writer.write(HttpData.wrap(bytes.values, bytes.offset, bytes.length))
+          }
+          maybeWriteTrailersAndClose(writer, response)
+        }
+    else
       writeOnDemand(writer, body).stream
         .onFinalize(maybeWriteTrailersAndClose(writer, response))
         .compile
         .drain
   }
 
-  private def maybeWriteTrailersAndClose(writer: HttpResponseWriter, response: Response[F]) =
+  private def maybeWriteTrailersAndClose(
+      writer: HttpResponseWriter,
+      response: Response[F]): F[Unit] =
     response.trailerHeaders.map { trailers =>
-      if (!trailers.isEmpty)
+      if (trailers.nonEmpty)
         writer.write(toHttpHeaders(trailers, None))
       writer.close()
     }
@@ -137,13 +146,16 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
   }
 
   /** Converts http4s' [[Headers]] to Armeria's [[HttpHeaders]]. */
-  private def toHttpHeaders(headers: Headers, status: Option[Status]): HttpHeaders = {
-    val builder = status.fold(HttpHeaders.builder())(s => ResponseHeaders.builder(s.code))
+  private def toHttpHeaders(headers: Headers, status: Option[Status]): HttpHeaders =
+    if (headers.isEmpty)
+      status.fold(HttpHeaders.of())(s => ResponseHeaders.of(s.code))
+    else {
+      val builder = status.fold(HttpHeaders.builder())(s => ResponseHeaders.builder(s.code))
 
-    for (header <- headers.toList)
-      builder.add(header.name.toString, header.value)
-    builder.build()
-  }
+      for (header <- headers.toList)
+        builder.add(header.name.toString, header.value)
+      builder.build()
+    }
 
   /** Converts Armeria's [[com.linecorp.armeria.common.HttpHeaders]] to http4s' [[Headers]]. */
   private def toHeaders(req: HttpRequest): Headers =
@@ -157,12 +169,15 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 
   /** Converts an HTTP payload to [[EntityBody]]. */
   private def toBody(req: HttpRequest): EntityBody[F] =
-    req
-      .toStream[F]
-      .flatMap { obj =>
-        val data = obj.asInstanceOf[HttpData]
-        Stream.chunk(Chunk.bytes(data.array()))
-      }
+    if (canHasBody(req.method()))
+      req
+        .toStream[F]
+        .flatMap { obj =>
+          val data = obj.asInstanceOf[HttpData]
+          Stream.chunk(Chunk.bytes(data.array()))
+        }
+    else
+      EmptyBody
 
   private def requestAttributes(ctx: ServiceRequestContext): Vault = {
     val secure = ctx.sessionProtocol().isTls
@@ -235,6 +250,20 @@ private[armeria] object ArmeriaHttp4sHandler {
       case HttpMethod.TRACE => TRACE
       case HttpMethod.CONNECT => CONNECT
       case HttpMethod.UNKNOWN => Left(ParseFailure("Invalid method", method.name()))
+    }
+
+  private def canHasBody(method: HttpMethod): Boolean =
+    method match {
+      case HttpMethod.OPTIONS => false
+      case HttpMethod.GET => false
+      case HttpMethod.HEAD => false
+      case HttpMethod.TRACE => false
+      case HttpMethod.CONNECT => false
+      case HttpMethod.POST => true
+      case HttpMethod.PUT => true
+      case HttpMethod.PATCH => true
+      case HttpMethod.DELETE => true
+      case HttpMethod.UNKNOWN => false
     }
 }
 
