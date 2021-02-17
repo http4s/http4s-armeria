@@ -32,7 +32,7 @@ libraryDependencies += "org.http4s" %% "http4s-armeria-client" % "<lastest-versi
 
 ### http4s integration
 
-#### Run your http4s service with Armeria server
+#### Run your http4s service with [Armeria server](https://armeria.dev/docs/server-basics)
 
 You can bind your http4s service using `ArmeriaServerBuilder[F].withHttpRoutes()`.
 
@@ -74,6 +74,9 @@ object ArmeriaExampleApp {
 You can create http4s client using `ArmeriaClientBuilder`.
 
 ```scala
+import com.linecorp.armeria.client.circuitbreaker._
+import com.linecopr.armeria.client.logging._
+import com.linecopr.armeria.client.retry._
 import org.http4s.armeria.client.ArmeriaClientBuilder 
 
 val client: Client[IO] = 
@@ -139,6 +142,9 @@ import com.linecorp.armeria.client.grpc.{GrpcClientOptions, GrpcClientStubFactor
 val client: HelloServiceFs2Grpc[IO, Metadata] =
  Clients
    .builder(s"gproto+http://127.0.0.1:$httpPort/grpc/")
+   // Add a circuit breaker for your gRPC client
+   .decorator(CircuitBreakerClient.newDecorator(CircuitBreaker.ofDefaultName(),
+                                                CircuitBreakerRule.onServerErrorStatus()))
    .option(GrpcClientOptions.GRPC_CLIENT_STUB_FACTORY.newValue(new GrpcClientStubFactory {
      // Specify `ServiceDescriptor` of your generated gRPC stub
      override def findServiceDescriptor(clientType: Class[_]): ServiceDescriptor =
