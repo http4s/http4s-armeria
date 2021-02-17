@@ -4,19 +4,20 @@ import sbtrelease.ReleasePlugin.autoImport._
 inThisBuild(
   Seq(
     organization := "org.http4s",
-    crossScalaVersions := Seq("2.13.4", "2.12.11"),
+    crossScalaVersions := Seq("2.13.4", "2.12.13"),
     scalaVersion := crossScalaVersions.value.head,
     homepage := Some(url("https://github.com/http4s/http4s-armeria")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
     startYear := Some(2020),
+    resolvers += Resolver.mavenLocal,
     Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true -Dcom.linecorp.armeria.verboseExceptions=always"
   )
 )
 
 val versions = new {
-  val armeria = "1.4.0"
+  val armeria = "1.5.0"
   val fs2 = "2.5.0"
-  val http4s = "0.21.16"
+  val http4s = "0.21.19"
   val logback = "1.2.3"
   val micrometer = "1.6.3"
   val scalaTest = "3.2.3"
@@ -90,6 +91,21 @@ lazy val exampleArmeriaScalaPB = project
   )
   .enablePlugins(PrivateProjectPlugin)
   .disablePlugins(TpolecatPlugin)
+  .dependsOn(server)
+
+lazy val exampleArmeriaFs2Grpc = project
+  .in(file("examples/armeria-fs2grpc"))
+  .settings(
+    name := "examples-armeria-fs2grpc",
+    libraryDependencies ++= List(
+      "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
+      "com.linecorp.armeria" % "armeria-grpc" % versions.armeria,
+      "com.linecorp.armeria" %% "armeria-scalapb" % versions.armeria,
+      "org.http4s" %% "http4s-dsl" % versions.http4s,
+      "org.scalatest" %% "scalatest" % versions.scalaTest % Test
+    )
+  )
+  .enablePlugins(PrivateProjectPlugin, Fs2Grpc)
   .dependsOn(server)
 
 lazy val publishSettings = List(

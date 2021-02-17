@@ -6,8 +6,8 @@
 
 package com.example.scalapb.armeria
 
-import example.armeria.grpc.hello.{HelloReply, HelloRequest}
 import example.armeria.grpc.hello.ReactorHelloServiceGrpc.ReactorHelloService
+import example.armeria.grpc.hello.{HelloReply, HelloRequest}
 import reactor.core.scala.publisher.{SFlux, SMono}
 
 class HelloServiceImpl extends ReactorHelloService {

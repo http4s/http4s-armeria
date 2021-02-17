@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package example.armeria.grpc;
+
+service HelloService {
+  rpc unary(HelloRequest) returns (HelloReply) {}
+  rpc serverStreaming(HelloRequest) returns (stream HelloReply) {}
+  rpc clientStreaming(stream HelloRequest) returns (HelloReply) {}
+  rpc bidiStreaming(stream HelloRequest) returns (stream HelloReply) {}
+}
+
+message HelloRequest {
+  string name = 1;
+}
+
+message HelloReply {
+  string message = 1;
+}
