@@ -30,7 +30,7 @@ lazy val root = project
     name := "http4s-armeria",
     description := " Armeria backend for http4s"
   )
-  .aggregate(server, client)
+  .aggregate(server, client, exampleArmeriaHttp4s, exampleArmeriaScalaPB)
 
 lazy val server = project
   .settings(publishSettings: _*)
