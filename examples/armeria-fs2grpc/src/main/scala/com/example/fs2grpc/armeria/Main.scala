@@ -35,11 +35,10 @@ object Main extends IOApp {
     // Build gRPC service
     val grpcService = GrpcService
       .builder()
-      // TODO(ikhoon): Support fs2-grpc with Armeria gRPC server and client.
       .addService(HelloServiceFs2Grpc.bindService(new HelloServiceImpl))
       // Register ScalaPbJsonMarshaller to support gRPC JSON format
       .jsonMarshallerFactory(_ => ScalaPbJsonMarshaller())
-//      .enableUnframedRequests(true)
+      .enableUnframedRequests(true)
       .build()
 
     val exampleRequest = HelloRequest("Armeria")

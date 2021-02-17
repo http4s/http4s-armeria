@@ -30,7 +30,11 @@ libraryDependencies += "org.http4s" %% "http4s-armeria-client" % "<lastest-versi
 
 ## Quick start
 
-### Run your service with Armeria server
+### http4s integration
+
+#### Run your http4s service with Armeria server
+
+You can bind your http4s service using `ArmeriaServerBuilder[F].withHttpRoutes()`.
 
 ```scala
 import cats.effect._
@@ -65,9 +69,13 @@ object ArmeriaExampleApp {
 }
 ```
 
-### Call your service with Armeria client
+#### Call your service with http4s-armeria client
+
+You can create http4s client using `ArmeriaClientBuilder`.
 
 ```scala
+import org.http4s.armeria.client.ArmeriaClientBuilder 
+
 val client: Client[IO] = 
   ArmeriaClientBuilder
     .unsafe[IO](s"http://127.0.0.1:${server.activeLocalPort()}")
@@ -82,6 +90,66 @@ val client: Client[IO] =
     .build()
     
 val response = client.expect[String]("Armeria").unsafeRunSync()
+```
+
+### fs2-grpc integration
+
+#### Run your [fs2-grpc](https://github.com/fiadliel/fs2-grpc) service with Armeria [gRPC server](https://armeria.dev/docs/server-grpc)
+
+Add the following dependencies to `build.sbt`.
+
+```sbt
+libraryDependencies += Seq(
+  "com.linecorp.armeria" % "armeria-grpc" % "1.5.0",
+  "com.linecorp.armeria" %% "armeria-scalapb" % "1.5.0")
+```
+
+Add your fs2-grpc service to `GrpcService`.
+
+```scala
+import com.linecorp.armeria.server.grpc.GrpcService
+import com.linecorp.armeria.common.scalapb.ScalaPbJsonMarshaller
+
+// Build gRPC service
+val grpcService = GrpcService
+  .builder()
+  .addService(HelloServiceFs2Grpc.bindService(new HelloServiceImpl))
+  // Register `ScalaPbJsonMarshaller` to support gRPC JSON format
+  .jsonMarshallerFactory(_ => ScalaPbJsonMarshaller())
+  .enableUnframedRequests(true)
+  .build()
+```
+
+You can run http4s service and gRPC service together with sharing a single HTTP port.
+
+```scala
+ArmeriaServerBuilder[IO]
+  .bindHttp(httpPort)
+  .withHttpServiceUnder("/grpc", grpcService)
+  .withHttpRoutes("/rest", ExampleService[IO].routes())
+  .resource
+```
+
+#### Call your gRPC service using fs2-grpc with Armeria [gRPC client](https://armeria.dev/docs/client-grpc)
+
+```scala
+import com.linecorp.armeria.client.Clients
+import com.linecorp.armeria.client.grpc.{GrpcClientOptions, GrpcClientStubFactory}
+
+val client: HelloServiceFs2Grpc[IO, Metadata] =
+ Clients
+   .builder(s"gproto+http://127.0.0.1:$httpPort/grpc/")
+   .option(GrpcClientOptions.GRPC_CLIENT_STUB_FACTORY.newValue(new GrpcClientStubFactory {
+     // Specify `ServiceDescriptor` of your generated gRPC stub
+     override def findServiceDescriptor(clientType: Class[_]): ServiceDescriptor =
+       HelloServiceGrpc.SERVICE
+
+     // Returns a newly created gRPC client stub from the given `Channel`
+     override def newClientStub(clientType: Class[_], channel: Channel): AnyRef =
+       HelloServiceFs2Grpc.stub[IO](channel)
+
+   }))
+   .build(classOf[HelloServiceFs2Grpc[IO, Metadata]])
 ```
 
 Visit [examples](./examples) to find a fully working example.
