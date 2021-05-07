@@ -13,4 +13,4 @@ addSbtPlugin("com.thesamet" % "sbt-protoc" % "1.0.0-RC4")
 libraryDependencies += "kr.ikhoon.scalapb-reactor" %% "scalapb-reactor-codegen" % "0.2.0"
 
 // fs2-grpc
-addSbtPlugin("org.lyranthe.fs2-grpc" % "sbt-java-gen" % "0.8.0")
+addSbtPlugin("org.lyranthe.fs2-grpc" % "sbt-java-gen" % "0.10.3")
