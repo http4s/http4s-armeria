@@ -20,7 +20,7 @@ val versions = new {
   val http4s = "0.21.19"
   val logback = "1.2.3"
   val micrometer = "1.6.3"
-  val scalaTest = "3.2.3"
+  val scalaTest = "3.2.8"
 }
 
 lazy val root = project
