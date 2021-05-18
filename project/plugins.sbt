@@ -9,7 +9,7 @@ addSbtPlugin("com.jsuereth" % "sbt-pgp" % "2.0.2")
 addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "3.0.0")
 
 // ScalaPB Reactor
-addSbtPlugin("com.thesamet" % "sbt-protoc" % "1.0.0-RC4")
+addSbtPlugin("com.thesamet" % "sbt-protoc" % "1.0.4")
 libraryDependencies += "kr.ikhoon.scalapb-reactor" %% "scalapb-reactor-codegen" % "0.2.0"
 
 // fs2-grpc
