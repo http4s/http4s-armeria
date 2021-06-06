@@ -32,7 +32,7 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
 )(implicit val B: Bracket[F, Throwable], F: ConcurrentEffect[F]) {
 
   def run(req: Request[F]): Resource[F, Response[F]] =
-    Resource.liftF(toResponse(client.execute(toHttpRequest(req))))
+    Resource.eval(toResponse(client.execute(toHttpRequest(req))))
 
   /** Converts http4s' [[Request]] to http4s' [[com.linecorp.armeria.common.HttpRequest]]. */
   private def toHttpRequest(req: Request[F]): HttpRequest = {

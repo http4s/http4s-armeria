@@ -12,9 +12,8 @@ import org.http4s.dsl.io._
 
 class TlsServerSpec extends AnyFunSuite with IOServerFixture with Matchers {
 
-  val routes = HttpRoutes.of[IO] {
-    case GET -> Root / "tls" =>
-      Ok()
+  val routes = HttpRoutes.of[IO] { case GET -> Root / "tls" =>
+    Ok()
   }
 
   override protected def configureServer(
