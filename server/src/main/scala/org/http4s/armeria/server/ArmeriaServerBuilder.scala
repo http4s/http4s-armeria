@@ -352,7 +352,7 @@ object ArmeriaServerBuilder {
         .gracefulShutdownTimeoutMillis(ShutdownTimeout.toMillis, ShutdownTimeout.toMillis)
     new ArmeriaServerBuilder(
       armeriaServerBuilder = defaultServerBuilder,
-      socketAddress = defaults.SocketAddress,
+      socketAddress = defaults.IPv4SocketAddress,
       serviceErrorHandler = DefaultServiceErrorHandler,
       banner = defaults.Banner)
   }
