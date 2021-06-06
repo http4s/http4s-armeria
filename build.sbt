@@ -20,7 +20,7 @@ val versions = new {
   val fs2 = "2.5.6"
   val http4s = "0.21.24"
   val logback = "1.2.3"
-  val micrometer = "1.6.7"
+  val micrometer = "1.7.0"
   val scalaTest = "3.2.9"
 }
 
