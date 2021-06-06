@@ -15,7 +15,7 @@ inThisBuild(
 )
 
 val versions = new {
-  val armeria = "1.5.0"
+  val armeria = "1.8.0"
   val fs2 = "2.5.6"
   val http4s = "0.21.19"
   val logback = "1.2.3"
@@ -90,7 +90,6 @@ lazy val exampleArmeriaScalaPB = project
     )
   )
   .enablePlugins(PrivateProjectPlugin)
-  .disablePlugins(TpolecatPlugin)
   .dependsOn(server)
 
 lazy val exampleArmeriaFs2Grpc = project
