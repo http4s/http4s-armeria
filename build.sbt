@@ -4,7 +4,7 @@ import sbtrelease.ReleasePlugin.autoImport._
 inThisBuild(
   Seq(
     organization := "org.http4s",
-    crossScalaVersions := Seq("2.13.4", "2.12.14"),
+    crossScalaVersions := Seq("2.13.6", "2.12.14"),
     scalaVersion := crossScalaVersions.value.head,
     homepage := Some(url("https://github.com/http4s/http4s-armeria")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
@@ -20,7 +20,7 @@ val versions = new {
   val http4s = "0.21.19"
   val logback = "1.2.3"
   val micrometer = "1.6.3"
-  val scalaTest = "3.2.3"
+  val scalaTest = "3.2.9"
 }
 
 lazy val root = project
