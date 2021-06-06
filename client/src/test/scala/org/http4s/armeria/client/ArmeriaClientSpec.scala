@@ -88,9 +88,8 @@ class ArmeriaClientSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll
             writer.write(ResponseHeaders.of(HttpStatus.OK))
             req
               .toStream[IO]
-              .collect {
-                case data: HttpData =>
-                  writer.write(HttpData.ofUtf8(s"${data.toStringUtf8}!"))
+              .collect { case data: HttpData =>
+                writer.write(HttpData.ofUtf8(s"${data.toStringUtf8}!"))
               }
               .onFinalize(IO(writer.close()))
               .compile

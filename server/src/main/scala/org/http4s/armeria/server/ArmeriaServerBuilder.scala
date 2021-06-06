@@ -253,12 +253,11 @@ sealed class ArmeriaServerBuilder[F[_]] private (
       keyInputStream: Resource[F, InputStream],
       keyPassword: Option[String]): F[Self] =
     (keyCertChainInputStream, keyInputStream).tupled
-      .use {
-        case (keyCertChain, key) =>
-          F.delay {
-            armeriaServerBuilder.tls(keyCertChain, key, keyPassword.orNull)
-            this
-          }
+      .use { case (keyCertChain, key) =>
+        F.delay {
+          armeriaServerBuilder.tls(keyCertChain, key, keyPassword.orNull)
+          this
+        }
       }
 
   /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] with the specified cleartext
