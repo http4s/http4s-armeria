@@ -1,25 +1,26 @@
-import sbt.Keys.libraryDependencies
+import sbt.Keys.{libraryDependencies, sourceManaged}
+import sbtprotoc.ProtocPlugin.autoImport.PB
 import sbtrelease.ReleasePlugin.autoImport._
 
-ThisBuild / crossScalaVersions := Seq("2.13.6", "2.12.13")
+ThisBuild / crossScalaVersions := Seq("2.13.6", "2.12.14")
 ThisBuild / scalaVersion := crossScalaVersions.value.head
 
+ThisBuild / organization := "org.http4s"
 ThisBuild / baseVersion := "0.3"
 ThisBuild / publishGithubUser := "ikhoon"
-ThisBuild / publishFullName   := "Ikhun"
+ThisBuild / publishFullName := "Ikhun"
 
 ThisBuild / homepage := Some(url("https://github.com/http4s/http4s-armeria"))
-ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
 ThisBuild / startYear := Some(2020)
 ThisBuild / resolvers += Resolver.mavenLocal
 ThisBuild / Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true -Dcom.linecorp.armeria.verboseExceptions=always"
 
 val versions = new {
-  val armeria = "1.5.0"
+  val armeria = "1.8.0"
   val fs2 = "2.5.6"
   val http4s = "0.21.19"
   val logback = "1.2.3"
-  val micrometer = "1.6.3"
+  val micrometer = "1.6.7"
   val scalaTest = "3.2.9"
 }
 
@@ -84,13 +85,12 @@ lazy val exampleArmeriaScalaPB = project
       "org.http4s" %% "http4s-dsl" % versions.http4s,
       "org.scalatest" %% "scalatest" % versions.scalaTest % Test
     ),
-    PB.targets in Compile := Seq(
-      scalapb.gen() -> (sourceManaged in Compile).value,
-      scalapb.reactor.ReactorCodeGenerator -> (sourceManaged in Compile).value
+    Compile / PB.targets := Seq(
+      scalapb.gen() -> (Compile / sourceManaged).value,
+      scalapb.reactor.ReactorCodeGenerator -> (Compile / sourceManaged).value
     )
   )
   .enablePlugins(NoPublishPlugin)
-  .disablePlugins(TpolecatPlugin)
   .dependsOn(server)
 
 lazy val exampleArmeriaFs2Grpc = project
@@ -113,14 +113,6 @@ lazy val publishSettings = List(
     ScmInfo(
       url("https://github.com/http4s/http4s-armeria"),
       "git@github.com:http4s/http4s-armeria.git")),
-  developers := List(
-    Developer(
-      "ikhoon",
-      "Ikhun Um",
-      "ih.pert@gmail.com",
-      url("https://github.com/ikhoon")
-    )
-  ),
   publishTo := {
     if (isSnapshot.value)
       Some(Opts.resolver.sonatypeSnapshots)
