@@ -1,18 +1,18 @@
 import sbt.Keys.libraryDependencies
 import sbtrelease.ReleasePlugin.autoImport._
 
-inThisBuild(
-  Seq(
-    organization := "org.http4s",
-    crossScalaVersions := Seq("2.13.6", "2.12.13"),
-    scalaVersion := crossScalaVersions.value.head,
-    homepage := Some(url("https://github.com/http4s/http4s-armeria")),
-    licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
-    startYear := Some(2020),
-    resolvers += Resolver.mavenLocal,
-    Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true -Dcom.linecorp.armeria.verboseExceptions=always"
-  )
-)
+ThisBuild / crossScalaVersions := Seq("2.13.6", "2.12.13")
+ThisBuild / scalaVersion := crossScalaVersions.value.head
+
+ThisBuild / baseVersion := "0.3"
+ThisBuild / publishGithubUser := "ikhoon"
+ThisBuild / publishFullName   := "Ikhun"
+
+ThisBuild / homepage := Some(url("https://github.com/http4s/http4s-armeria"))
+ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
+ThisBuild / startYear := Some(2020)
+ThisBuild / resolvers += Resolver.mavenLocal
+ThisBuild / Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true -Dcom.linecorp.armeria.verboseExceptions=always"
 
 val versions = new {
   val armeria = "1.5.0"
@@ -25,7 +25,7 @@ val versions = new {
 
 lazy val root = project
   .in(file("."))
-  .enablePlugins(PrivateProjectPlugin)
+  .enablePlugins(NoPublishPlugin)
   .settings(
     // Root project
     name := "http4s-armeria",
@@ -70,7 +70,7 @@ lazy val exampleArmeriaHttp4s = project
       "org.http4s" %% "http4s-dsl" % versions.http4s
     )
   )
-  .enablePlugins(PrivateProjectPlugin)
+  .enablePlugins(NoPublishPlugin)
   .dependsOn(server)
 
 lazy val exampleArmeriaScalaPB = project
@@ -89,7 +89,7 @@ lazy val exampleArmeriaScalaPB = project
       scalapb.reactor.ReactorCodeGenerator -> (sourceManaged in Compile).value
     )
   )
-  .enablePlugins(PrivateProjectPlugin)
+  .enablePlugins(NoPublishPlugin)
   .disablePlugins(TpolecatPlugin)
   .dependsOn(server)
 
@@ -105,7 +105,7 @@ lazy val exampleArmeriaFs2Grpc = project
       "org.scalatest" %% "scalatest" % versions.scalaTest % Test
     )
   )
-  .enablePlugins(PrivateProjectPlugin, Fs2Grpc)
+  .enablePlugins(NoPublishPlugin, Fs2Grpc)
   .dependsOn(server)
 
 lazy val publishSettings = List(
