@@ -1,4 +1,5 @@
-import sbt.Keys.libraryDependencies
+import sbt.Keys.{libraryDependencies, sourceManaged}
+import sbtprotoc.ProtocPlugin.autoImport.PB
 import sbtrelease.ReleasePlugin.autoImport._
 
 inThisBuild(
@@ -84,9 +85,9 @@ lazy val exampleArmeriaScalaPB = project
       "org.http4s" %% "http4s-dsl" % versions.http4s,
       "org.scalatest" %% "scalatest" % versions.scalaTest % Test
     ),
-    PB.targets in Compile := Seq(
-      scalapb.gen() -> (sourceManaged in Compile).value,
-      scalapb.reactor.ReactorCodeGenerator -> (sourceManaged in Compile).value
+    Compile / PB.targets := Seq(
+      scalapb.gen() -> (Compile / sourceManaged).value,
+      scalapb.reactor.ReactorCodeGenerator -> (Compile / sourceManaged).value
     )
   )
   .enablePlugins(PrivateProjectPlugin)
