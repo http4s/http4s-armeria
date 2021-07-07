@@ -3,16 +3,17 @@ package org.http4s.armeria.server
 import cats.effect.{IO, Resource}
 import io.netty.handler.ssl.util.SelfSignedCertificate
 import java.io.FileInputStream
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.must.Matchers
+
 import com.linecorp.armeria.client.{ClientFactory, WebClient}
 import com.linecorp.armeria.common.HttpStatus
+import munit.CatsEffectSuite
 import org.http4s.HttpRoutes
 import org.http4s.dsl.io._
 
-class TlsServerSpec extends AnyFunSuite with IOServerFixture with Matchers {
+class TlsServerSuite extends CatsEffectSuite with ServerFixture {
+  override def munitFixtures = List(armeriaServerFixture)
 
-  val routes = HttpRoutes.of[IO] { case GET -> Root / "tls" =>
+  private val routes = HttpRoutes.of[IO] { case GET -> Root / "tls" =>
     Ok()
   }
 
@@ -33,6 +34,6 @@ class TlsServerSpec extends AnyFunSuite with IOServerFixture with Matchers {
       .builder(httpsUri.get)
       .factory(ClientFactory.insecure())
       .build()
-    client.get("/tls").aggregate().join().status() must be(HttpStatus.OK)
+    assertEquals(client.get("/tls").aggregate().join().status(), HttpStatus.OK)
   }
 }
