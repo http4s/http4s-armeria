@@ -22,6 +22,8 @@ val versions = new {
   val logback = "1.2.3"
   val micrometer = "1.7.1"
   val scalaTest = "3.2.9"
+  val munit = "0.7.27"
+  val catsEffectMunit = "1.0.4"
 }
 
 lazy val root = project
@@ -44,7 +46,9 @@ lazy val server = project
       "org.http4s" %% "http4s-server" % versions.http4s,
       "ch.qos.logback" % "logback-classic" % versions.logback % Test,
       "org.http4s" %% "http4s-dsl" % versions.http4s % Test,
-      "org.scalatest" %% "scalatest" % versions.scalaTest % Test
+      "org.scalatest" %% "scalatest" % versions.scalaTest % Test,
+      "org.scalameta" %% "munit" % versions.munit % Test,
+      "org.typelevel" %%% "munit-cats-effect-2" % versions.catsEffectMunit % Test
     )
   )
 
@@ -93,7 +97,7 @@ lazy val exampleArmeriaScalaPB = project
   .enablePlugins(PrivateProjectPlugin)
   .dependsOn(server)
 
-lazy val exampleArmeriaFs2Grpc = project
+/*lazy val exampleArmeriaFs2Grpc = project
   .in(file("examples/armeria-fs2grpc"))
   .settings(
     name := "examples-armeria-fs2grpc",
@@ -106,7 +110,7 @@ lazy val exampleArmeriaFs2Grpc = project
     )
   )
   .enablePlugins(PrivateProjectPlugin, Fs2Grpc)
-  .dependsOn(server)
+  .dependsOn(server)*/
 
 lazy val publishSettings = List(
   scmInfo := Some(
