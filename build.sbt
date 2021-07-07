@@ -26,6 +26,11 @@ val versions = new {
   val catsEffectMunit = "1.0.4"
 }
 
+val munit = Seq(
+  "org.scalameta" %% "munit" % versions.munit % Test,
+  "org.typelevel" %% "munit-cats-effect-2" % versions.catsEffectMunit % Test
+)
+
 lazy val root = project
   .in(file("."))
   .enablePlugins(PrivateProjectPlugin)
@@ -45,10 +50,8 @@ lazy val server = project
       "co.fs2" %% "fs2-reactive-streams" % versions.fs2,
       "org.http4s" %% "http4s-server" % versions.http4s,
       "ch.qos.logback" % "logback-classic" % versions.logback % Test,
-      "org.http4s" %% "http4s-dsl" % versions.http4s % Test,
-      "org.scalameta" %% "munit" % versions.munit % Test,
-      "org.typelevel" %%% "munit-cats-effect-2" % versions.catsEffectMunit % Test
-    )
+      "org.http4s" %% "http4s-dsl" % versions.http4s % Test
+    ) ++ munit
   )
 
 lazy val client = project
@@ -59,10 +62,8 @@ lazy val client = project
       "com.linecorp.armeria" % "armeria" % versions.armeria,
       "co.fs2" %% "fs2-reactive-streams" % versions.fs2,
       "org.http4s" %% "http4s-client" % versions.http4s,
-      "ch.qos.logback" % "logback-classic" % versions.logback % Test,
-      "org.scalameta" %% "munit" % versions.munit % Test,
-      "org.typelevel" %%% "munit-cats-effect-2" % versions.catsEffectMunit % Test
-    )
+      "ch.qos.logback" % "logback-classic" % versions.logback % Test
+    ) ++ munit
   )
 
 lazy val exampleArmeriaHttp4s = project
