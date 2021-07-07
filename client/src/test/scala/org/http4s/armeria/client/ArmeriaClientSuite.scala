@@ -2,7 +2,7 @@ package org.http4s
 package armeria
 package client
 
-import cats.effect.IO
+import cats.effect.{IO, Resource}
 import com.linecorp.armeria.client.logging.{ContentPreviewingClient, LoggingClient}
 import com.linecorp.armeria.common.{
   HttpData,
@@ -15,25 +15,18 @@ import com.linecorp.armeria.server.logging.{ContentPreviewingService, LoggingSer
 import com.linecorp.armeria.server.{HttpService, Server, ServiceRequestContext}
 import fs2._
 import fs2.interop.reactivestreams._
+import munit.CatsEffectSuite
 import org.http4s.client.Client
 import org.http4s.implicits.http4sLiteralsSyntax
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.must.Matchers
 import org.slf4j.LoggerFactory
-import scala.concurrent.ExecutionContext
+
 import scala.concurrent.duration._
 
-class ArmeriaClientSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll {
-
-  implicit val ec = IO.contextShift(ExecutionContext.global)
+class ArmeriaClientSuite extends CatsEffectSuite {
   private val logger = LoggerFactory.getLogger(getClass)
 
-  var server: Server = _
-  var client: Client[IO] = _
-
-  override protected def beforeAll(): Unit = {
-    server = Server
+  private def setUp(): IO[(Server, Client[IO])] = {
+    val server = Server
       .builder()
       .decorator(ContentPreviewingService.newDecorator(Int.MaxValue))
       .decorator(LoggingService.newDecorator())
@@ -103,41 +96,49 @@ class ArmeriaClientSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll
         }
       )
       .build()
-    server.start().join()
 
-    client = ArmeriaClientBuilder
-      .unsafe[IO](s"http://127.0.0.1:${server.activeLocalPort()}")
-      .withDecorator(ContentPreviewingClient.newDecorator(Int.MaxValue))
-      .withDecorator(LoggingClient.newDecorator())
-      .withResponseTimeout(10.seconds)
-      .build()
+    IO(server.start().join()) *> IO {
+      val client = ArmeriaClientBuilder
+        .unsafe[IO](s"http://127.0.0.1:${server.activeLocalPort()}")
+        .withDecorator(ContentPreviewingClient.newDecorator(Int.MaxValue))
+        .withDecorator(LoggingClient.newDecorator())
+        .withResponseTimeout(10.seconds)
+        .build()
+
+      server -> client
+    }
   }
 
-  override protected def afterAll(): Unit = {
-    server.stop().join()
-    ()
-  }
+  private val fixture =
+    ResourceSuiteLocalFixture("fixture", Resource.make(setUp())(x => IO(x._1.stop().join()).void))
+
+  override def munitFixtures = List(fixture)
 
   test("get") {
+    val (_, client) = fixture()
     val response = client.expect[String]("Armeria").unsafeRunSync()
-    response must be("Hello, Armeria!")
+    assertEquals(response, "Hello, Armeria!")
   }
 
   test("absolute-uri") {
+    val (server, _) = fixture()
     val clientWithoutBaseUri = ArmeriaClientBuilder[IO]().resource.allocated.unsafeRunSync()._1
     val uri = s"http://127.0.0.1:${server.activeLocalPort()}/Armeria"
     val response = clientWithoutBaseUri.expect[String](uri).unsafeRunSync()
-    response must be("Hello, Armeria!")
+    assertEquals(response, "Hello, Armeria!")
   }
 
   test("post") {
+    val (_, client) = fixture()
     val body = Stream.emits("Armeria".getBytes).covary[IO]
     val req = Request(method = Method.POST, uri = uri"/post", body = body)
     val response = client.expect[String](IO(req)).unsafeRunSync()
-    response must be("Hello, Armeria!")
+    assertEquals(response, "Hello, Armeria!")
   }
 
   test("client-streaming") {
+    val (_, client) = fixture()
+
     val body = Stream
       .range(1, 6)
       .covary[IO]
@@ -146,10 +147,12 @@ class ArmeriaClientSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll
 
     val req = Request(method = Method.POST, uri = uri"/client-streaming", body = body)
     val response = client.expect[String](IO(req)).unsafeRunSync()
-    response must be("1 2 3 4 5")
+    assertEquals(response, "1 2 3 4 5")
   }
 
   test("bidi-streaming") {
+    val (_, client) = fixture()
+
     val body = Stream
       .range(1, 6)
       .covary[IO]
@@ -164,6 +167,6 @@ class ArmeriaClientSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll
       .toList
       .unsafeRunSync()
       .reduce(_ + " " + _)
-    response must be("1! 2! 3! 4! 5! ")
+    assertEquals(response, "1! 2! 3! 4! 5! ")
   }
 }

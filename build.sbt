@@ -60,7 +60,8 @@ lazy val client = project
       "co.fs2" %% "fs2-reactive-streams" % versions.fs2,
       "org.http4s" %% "http4s-client" % versions.http4s,
       "ch.qos.logback" % "logback-classic" % versions.logback % Test,
-      "org.scalatest" %% "scalatest" % versions.scalaTest % Test
+      "org.scalameta" %% "munit" % versions.munit % Test,
+      "org.typelevel" %%% "munit-cats-effect-2" % versions.catsEffectMunit % Test
     )
   )
 
@@ -96,7 +97,7 @@ lazy val exampleArmeriaScalaPB = project
   .enablePlugins(PrivateProjectPlugin)
   .dependsOn(server)
 
-/*lazy val exampleArmeriaFs2Grpc = project
+lazy val exampleArmeriaFs2Grpc = project
   .in(file("examples/armeria-fs2grpc"))
   .settings(
     name := "examples-armeria-fs2grpc",
@@ -109,7 +110,7 @@ lazy val exampleArmeriaScalaPB = project
     )
   )
   .enablePlugins(PrivateProjectPlugin, Fs2Grpc)
-  .dependsOn(server)*/
+  .dependsOn(server)
 
 lazy val publishSettings = List(
   scmInfo := Some(
