@@ -46,7 +46,6 @@ lazy val server = project
       "org.http4s" %% "http4s-server" % versions.http4s,
       "ch.qos.logback" % "logback-classic" % versions.logback % Test,
       "org.http4s" %% "http4s-dsl" % versions.http4s % Test,
-      "org.scalatest" %% "scalatest" % versions.scalaTest % Test,
       "org.scalameta" %% "munit" % versions.munit % Test,
       "org.typelevel" %%% "munit-cats-effect-2" % versions.catsEffectMunit % Test
     )
