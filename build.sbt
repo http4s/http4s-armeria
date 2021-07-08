@@ -16,13 +16,20 @@ inThisBuild(
 )
 
 val versions = new {
-  val armeria = "1.8.0"
-  val fs2 = "3.0.6"
+  val armeria = "1.9.2"
+  val fs2 = "2.5.8"
   val http4s = "0.21.24"
   val logback = "1.2.3"
   val micrometer = "1.7.1"
   val scalaTest = "3.2.9"
+  val munit = "0.7.27"
+  val catsEffectMunit = "1.0.4"
 }
+
+val munit = Seq(
+  "org.scalameta" %% "munit" % versions.munit % Test,
+  "org.typelevel" %% "munit-cats-effect-2" % versions.catsEffectMunit % Test
+)
 
 lazy val root = project
   .in(file("."))
@@ -43,9 +50,8 @@ lazy val server = project
       "co.fs2" %% "fs2-reactive-streams" % versions.fs2,
       "org.http4s" %% "http4s-server" % versions.http4s,
       "ch.qos.logback" % "logback-classic" % versions.logback % Test,
-      "org.http4s" %% "http4s-dsl" % versions.http4s % Test,
-      "org.scalatest" %% "scalatest" % versions.scalaTest % Test
-    )
+      "org.http4s" %% "http4s-dsl" % versions.http4s % Test
+    ) ++ munit
   )
 
 lazy val client = project
@@ -56,9 +62,8 @@ lazy val client = project
       "com.linecorp.armeria" % "armeria" % versions.armeria,
       "co.fs2" %% "fs2-reactive-streams" % versions.fs2,
       "org.http4s" %% "http4s-client" % versions.http4s,
-      "ch.qos.logback" % "logback-classic" % versions.logback % Test,
-      "org.scalatest" %% "scalatest" % versions.scalaTest % Test
-    )
+      "ch.qos.logback" % "logback-classic" % versions.logback % Test
+    ) ++ munit
   )
 
 lazy val exampleArmeriaHttp4s = project

@@ -6,31 +6,31 @@
 
 package org.http4s.armeria.server
 
+import java.net.{HttpURLConnection, URL}
+import java.nio.charset.StandardCharsets
+
 import cats.effect.concurrent.Deferred
-import cats.effect.{IO, Timer}
+import cats.effect.IO
 import cats.implicits._
 import com.linecorp.armeria.client.logging.LoggingClient
 import com.linecorp.armeria.client.{ClientFactory, WebClient}
 import com.linecorp.armeria.common.{HttpData, HttpStatus}
 import com.linecorp.armeria.server.logging.{ContentPreviewingService, LoggingService}
 import fs2._
-import java.net.{HttpURLConnection, URL}
-import java.nio.charset.StandardCharsets
+import munit.CatsEffectSuite
 import org.http4s.dsl.io._
 import org.http4s.multipart.Multipart
 import org.http4s.{Header, Headers, HttpRoutes}
 import org.reactivestreams.{Subscriber, Subscription}
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.must.Matchers
+
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.io.Source
 
-class ArmeriaServerBuilderSpec extends AnyFunSuite with IOServerFixture with Matchers {
+class ArmeriaServerBuilderSuite extends CatsEffectSuite with ServerFixture {
+  override def munitFixtures = List(armeriaServerFixture)
 
-  implicit val timer: Timer[IO] = IO.timer(scala.concurrent.ExecutionContext.Implicits.global)
-
-  val service: HttpRoutes[IO] = HttpRoutes.of {
+  private val service: HttpRoutes[IO] = HttpRoutes.of {
     case GET -> Root / "thread" / "routing" =>
       val thread = Thread.currentThread.getName
       Ok(thread)
@@ -75,35 +75,41 @@ class ArmeriaServerBuilderSpec extends AnyFunSuite with IOServerFixture with Mat
 
   test("route requests on the service executor") {
     // A event loop will serve the service to reduce an extra context switching
-    client
-      .get("/service/thread/routing")
-      .aggregate()
-      .join()
-      .contentUtf8() must startWith("armeria-common-worker")
+    assert(
+      client
+        .get("/service/thread/routing")
+        .aggregate()
+        .join()
+        .contentUtf8()
+        .startsWith("armeria-common-worker"))
   }
 
   test("execute the service task on the service executor") {
     // A event loop will serve the service to reduce an extra context switching
-    client
-      .get("/service/thread/effect")
-      .aggregate()
-      .join()
-      .contentUtf8() must startWith("armeria-common-worker")
+    assert(
+      client
+        .get("/service/thread/effect")
+        .aggregate()
+        .join()
+        .contentUtf8()
+        .startsWith("armeria-common-worker"))
   }
 
   test("be able to echo its input") {
     val input = """{ "Hello": "world" }"""
-    client
-      .post("/service/echo", input)
-      .aggregate()
-      .join()
-      .contentUtf8() must startWith(input)
+    assert(
+      client
+        .post("/service/echo", input)
+        .aggregate()
+        .join()
+        .contentUtf8()
+        .startsWith(input))
   }
 
   test("be able to send trailers") {
     val response = client.get("/service/trailers").aggregate().join()
-    response.status() must be(HttpStatus.OK)
-    response.trailers().get("my-trailers") must be("foo")
+    assertEquals(response.status(), HttpStatus.OK)
+    assertEquals(response.trailers().get("my-trailers"), "foo")
   }
 
   test("return a 503 if the server doesn't respond") {
@@ -113,7 +119,9 @@ class ArmeriaServerBuilderSpec extends AnyFunSuite with IOServerFixture with Mat
       .responseTimeoutMillis(0)
       .decorator(LoggingClient.newDecorator())
       .build()
-    noTimeoutClient.get("/service/never").aggregate().join().status() must be(
+
+    assertEquals(
+      noTimeoutClient.get("/service/never").aggregate().join().status(),
       HttpStatus.SERVICE_UNAVAILABLE)
   }
 
@@ -126,7 +134,7 @@ class ArmeriaServerBuilderSpec extends AnyFunSuite with IOServerFixture with Mat
          |a
          |--aa--""".stripMargin.replace("\n", "\r\n")
 
-    postChunkedMultipart("/service/issue2610", "aa", body) must be("a")
+    assertEquals(postChunkedMultipart("/service/issue2610", "aa", body), "a")
   }
 
   test("stream") {
@@ -147,8 +155,11 @@ class ArmeriaServerBuilderSpec extends AnyFunSuite with IOServerFixture with Mat
         override def onComplete(): Unit =
           deferred.complete(true).unsafeRunSync()
       })
-    deferred.get.unsafeRunSync()
-    buffer.mkString("") must be("123456789")
+
+    for {
+      _ <- deferred.get
+      _ <- assertIO(IO(buffer.mkString("")), "123456789")
+    } yield ()
   }
 
   private def postChunkedMultipart(path: String, boundary: String, body: String): String = {
