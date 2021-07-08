@@ -23,7 +23,7 @@ val versions = new {
   val micrometer = "1.7.1"
   val scalaTest = "3.2.9"
   val munit = "0.7.27"
-  val catsEffectMunit = "1.0.4"
+  val catsEffectMunit = "1.0.5"
 }
 
 val munit = Seq(
