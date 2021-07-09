@@ -15,7 +15,7 @@ import reactor.core.scala.publisher.SFlux
 import scala.concurrent.duration.DurationInt
 
 class HelloServiceTest extends CatsEffectSuite {
-  private def setUp() = {
+  private def setUp() =
     Main.newServer(0).map { armeriaServer =>
       val httpPort = armeriaServer.server.activeLocalPort()
 
@@ -23,7 +23,6 @@ class HelloServiceTest extends CatsEffectSuite {
         .builder(s"gproto+http://127.0.0.1:$httpPort/grpc/")
         .build(classOf[ReactorHelloServiceStub])
     }
-  }
 
   private val fixture = ResourceSuiteLocalFixture("fixture", setUp())
 
