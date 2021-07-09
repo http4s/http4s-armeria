@@ -87,9 +87,8 @@ lazy val exampleArmeriaScalaPB = project
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
       "com.linecorp.armeria" % "armeria-grpc" % versions.armeria,
       "com.linecorp.armeria" %% "armeria-scalapb" % versions.armeria,
-      "org.http4s" %% "http4s-dsl" % versions.http4s,
-      "org.scalatest" %% "scalatest" % versions.scalaTest % Test
-    ),
+      "org.http4s" %% "http4s-dsl" % versions.http4s
+    ) ++ munit,
     Compile / PB.targets := Seq(
       scalapb.gen() -> (Compile / sourceManaged).value,
       scalapb.reactor.ReactorCodeGenerator -> (Compile / sourceManaged).value
