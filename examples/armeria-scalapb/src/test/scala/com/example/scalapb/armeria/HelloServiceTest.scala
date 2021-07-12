@@ -6,50 +6,45 @@
 
 package com.example.scalapb.armeria
 
-import cats.effect.{ContextShift, IO}
 import com.linecorp.armeria.client.Clients
 import example.armeria.grpc.hello.ReactorHelloServiceGrpc.ReactorHelloServiceStub
 import example.armeria.grpc.hello.{HelloReply, HelloRequest}
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.must.Matchers
+import munit.CatsEffectSuite
 import reactor.core.scala.publisher.SFlux
-import scala.concurrent.ExecutionContext
+
 import scala.concurrent.duration.DurationInt
 
-class HelloServiceTest extends AnyFunSuite with BeforeAndAfterAll with Matchers {
+class HelloServiceTest extends CatsEffectSuite {
+  private def setUp() =
+    Main.newServer(0).map { armeriaServer =>
+      val httpPort = armeriaServer.server.activeLocalPort()
 
-  implicit val ec: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+      Clients
+        .builder(s"gproto+http://127.0.0.1:$httpPort/grpc/")
+        .build(classOf[ReactorHelloServiceStub])
+    }
 
-  private var releaseToken: IO[Unit] = _
-  private var httpPort: Int = _
-  private var client: ReactorHelloServiceStub = _
+  private val fixture = ResourceSuiteLocalFixture("fixture", setUp())
 
-  override protected def beforeAll(): Unit = {
-    val (armeriaServer, token) = Main.newServer(0).allocated.unsafeRunSync()
-    httpPort = armeriaServer.server.activeLocalPort()
-    releaseToken = token
-
-    client = Clients
-      .builder(s"gproto+http://127.0.0.1:$httpPort/grpc/")
-      .build(classOf[ReactorHelloServiceStub])
-  }
-
-  override protected def afterAll(): Unit = releaseToken.unsafeRunSync()
+  override def munitFixtures = List(fixture)
 
   val message = "ScalaPB with Reactor"
+
   test("unary") {
+    val client = fixture()
     val response = client.unary(HelloRequest(message)).block()
-    response.message must be(s"Hello $message!")
+    assertEquals(response.message, s"Hello $message!")
   }
 
   test("serverStream") {
+    val client = fixture()
     val response = client.serverStreaming(HelloRequest(message)).collectSeq().block()
     val expected = (1 to 5).map(i => HelloReply(s"Hello $message $i!"))
-    response must be(expected)
+    assertEquals(response, expected)
   }
 
   test("clientStream") {
+    val client = fixture()
     val response = client
       .clientStreaming(
         SFlux
@@ -58,16 +53,17 @@ class HelloServiceTest extends AnyFunSuite with BeforeAndAfterAll with Matchers 
           .map(i => HelloRequest(i.toString))
       )
       .block()
-    response.message must be("Hello 1, 2, 3, 4, 5!")
+    assertEquals(response.message, "Hello 1, 2, 3, 4, 5!")
   }
 
   test("bidiStream") {
+    val client = fixture()
     val responses = client
       .bidiStreaming(SFlux(1, 2, 3).map(i => HelloRequest(i.toString)))
       .map(res => res.message)
       .collectSeq()
       .block()
     val expected = (1 to 3).map(i => s"Hello $i!")
-    responses must be(expected)
+    assertEquals(responses, expected)
   }
 }
