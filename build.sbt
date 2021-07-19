@@ -17,11 +17,10 @@ inThisBuild(
 
 val versions = new {
   val armeria = "1.9.2"
-  val fs2 = "3.0.6"
-  val http4s = "0.21.24"
+  val fs2 = "2.5.9"
+  val http4s = "0.21.25"
   val logback = "1.2.3"
-  val micrometer = "1.7.1"
-  val scalaTest = "3.2.9"
+  val micrometer = "1.7.2"
   val munit = "0.7.27"
   val catsEffectMunit = "1.0.5"
 }
@@ -87,9 +86,8 @@ lazy val exampleArmeriaScalaPB = project
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
       "com.linecorp.armeria" % "armeria-grpc" % versions.armeria,
       "com.linecorp.armeria" %% "armeria-scalapb" % versions.armeria,
-      "org.http4s" %% "http4s-dsl" % versions.http4s,
-      "org.scalatest" %% "scalatest" % versions.scalaTest % Test
-    ),
+      "org.http4s" %% "http4s-dsl" % versions.http4s
+    ) ++ munit,
     Compile / PB.targets := Seq(
       scalapb.gen() -> (Compile / sourceManaged).value,
       scalapb.reactor.ReactorCodeGenerator -> (Compile / sourceManaged).value
@@ -106,9 +104,8 @@ lazy val exampleArmeriaFs2Grpc = project
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
       "com.linecorp.armeria" % "armeria-grpc" % versions.armeria,
       "com.linecorp.armeria" %% "armeria-scalapb" % versions.armeria,
-      "org.http4s" %% "http4s-dsl" % versions.http4s,
-      "org.scalatest" %% "scalatest" % versions.scalaTest % Test
-    )
+      "org.http4s" %% "http4s-dsl" % versions.http4s
+    ) ++ munit
   )
   .enablePlugins(PrivateProjectPlugin, Fs2Grpc)
   .dependsOn(server)
