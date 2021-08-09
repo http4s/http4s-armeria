@@ -21,7 +21,7 @@ val versions = new {
   val http4s = "0.21.25"
   val logback = "1.2.5"
   val micrometer = "1.7.2"
-  val munit = "0.7.27"
+  val munit = "0.7.28"
   val catsEffectMunit = "1.0.5"
 }
 
