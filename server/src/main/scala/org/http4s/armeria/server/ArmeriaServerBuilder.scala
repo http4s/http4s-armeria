@@ -13,10 +13,10 @@ import com.linecorp.armeria.common.{HttpRequest, HttpResponse, SessionProtocol}
 import com.linecorp.armeria.server.{
   HttpService,
   HttpServiceWithRoutes,
-  ServerListenerAdapter,
-  ServiceRequestContext,
   Server => BackendServer,
-  ServerBuilder => ArmeriaBuilder
+  ServerBuilder => ArmeriaBuilder,
+  ServerListenerAdapter,
+  ServiceRequestContext
 }
 import io.micrometer.core.instrument.MeterRegistry
 import io.netty.channel.ChannelOption
@@ -72,7 +72,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
 
           val armeriaVersion = Version.get("armeria").artifactVersion()
 
-          logger.info(s"http4s v${BuildInfo.version} on Armeria v${armeriaVersion} started")
+          logger.info(s"http4s v${BuildInfo.version} on Armeria v$armeriaVersion started")
         }
       })
       armeriaServer0.start().join()
@@ -91,8 +91,9 @@ sealed class ArmeriaServerBuilder[F[_]] private (
       armeriaServer -> shutdown(armeriaServer.server)
     })
 
-  /** Binds the specified `service` at the specified path pattern.
-    * See [[https://armeria.dev/docs/server-basics#path-patterns]] for detailed information of path pattens.
+  /** Binds the specified `service` at the specified path pattern. See
+    * [[https://armeria.dev/docs/server-basics#path-patterns]] for detailed information of path
+    * pattens.
     */
   def withHttpService(
       pathPattern: String,
@@ -107,16 +108,17 @@ sealed class ArmeriaServerBuilder[F[_]] private (
   }
 
   /** Binds the specified [[com.linecorp.armeria.server.HttpService]] at the specified path pattern.
-    * See [[https://armeria.dev/docs/server-basics#path-patterns]] for detailed information of path pattens.
+    * See [[https://armeria.dev/docs/server-basics#path-patterns]] for detailed information of path
+    * pattens.
     */
   def withHttpService(pathPattern: String, service: HttpService): Self = {
     armeriaServerBuilder.service(pathPattern, service)
     this
   }
 
-  /** Binds the specified [[com.linecorp.armeria.server.HttpServiceWithRoutes]]
-    * at multiple [[com.linecorp.armeria.server.Route]]s
-    * of the default [[com.linecorp.armeria.server.VirtualHost]].
+  /** Binds the specified [[com.linecorp.armeria.server.HttpServiceWithRoutes]] at multiple
+    * [[com.linecorp.armeria.server.Route]] s of the default
+    * [[com.linecorp.armeria.server.VirtualHost]].
     */
   def withHttpService(serviceWithRoutes: HttpServiceWithRoutes): Self = {
     armeriaServerBuilder.service(serviceWithRoutes)
@@ -152,7 +154,9 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     this
   }
 
-  /** Decorates HTTP services under the specified directory with the specified [[DecoratingFunction]]. */
+  /** Decorates HTTP services under the specified directory with the specified
+    * [[DecoratingFunction]].
+    */
   def withDecoratorUnder(prefix: String, decorator: DecoratingFunction): Self = {
     armeriaServerBuilder.decoratorUnder(
       prefix,
@@ -168,7 +172,9 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     this
   }
 
-  /** Configures the Armeria server using the specified [[com.linecorp.armeria.server.ServerBuilder]]. */
+  /** Configures the Armeria server using the specified
+    * [[com.linecorp.armeria.server.ServerBuilder]].
+    */
   def withArmeriaBuilder(customizer: ArmeriaBuilder => Unit): Self = {
     customizer(armeriaServerBuilder)
     this
@@ -176,7 +182,8 @@ sealed class ArmeriaServerBuilder[F[_]] private (
 
   /** Sets the idle timeout of a connection in milliseconds for keep-alive.
     *
-    * @param idleTimeout the timeout. `scala.concurrent.duration.Duration.Zero` disables the timeout.
+    * @param idleTimeout
+    *   the timeout. `scala.concurrent.duration.Duration.Zero` disables the timeout.
     */
   def withIdleTimeout(idleTimeout: FiniteDuration): Self = {
     armeriaServerBuilder.idleTimeoutMillis(idleTimeout.toMillis)
@@ -185,7 +192,8 @@ sealed class ArmeriaServerBuilder[F[_]] private (
 
   /** Sets the timeout of a request.
     *
-    * @param requestTimeout the timeout. `scala.concurrent.duration.Duration.Zero` disables the timeout.
+    * @param requestTimeout
+    *   the timeout. `scala.concurrent.duration.Duration.Zero` disables the timeout.
     */
   def withRequestTimeout(requestTimeout: FiniteDuration): Self = {
     armeriaServerBuilder.requestTimeoutMillis(requestTimeout.toMillis)
@@ -194,8 +202,10 @@ sealed class ArmeriaServerBuilder[F[_]] private (
 
   /** Adds an HTTP port that listens on all available network interfaces.
     *
-    * @param port the HTTP port number.
-    * @see [[com.linecorp.armeria.server.ServerBuilder#https(localAddress:java\.net\.InetSocketAddress):com\.linecorp\.armeria\.server\.ServerBuilder*]]
+    * @param port
+    *   the HTTP port number.
+    * @see
+    *   [[com.linecorp.armeria.server.ServerBuilder#https(localAddress:java\.net\.InetSocketAddress):com\.linecorp\.armeria\.server\.ServerBuilder*]]
     */
   def withHttp(port: Int): Self = {
     armeriaServerBuilder.http(port)
@@ -204,8 +214,10 @@ sealed class ArmeriaServerBuilder[F[_]] private (
 
   /** Adds an HTTPS port that listens on all available network interfaces.
     *
-    * @param port the HTTPS port number.
-    * @see [[com.linecorp.armeria.server.ServerBuilder#https(localAddress:java\.net\.InetSocketAddress):com\.linecorp\.armeria\.server\.ServerBuilder*]]
+    * @param port
+    *   the HTTPS port number.
+    * @see
+    *   [[com.linecorp.armeria.server.ServerBuilder#https(localAddress:java\.net\.InetSocketAddress):com\.linecorp\.armeria\.server\.ServerBuilder*]]
     */
   def withHttps(port: Int): Self = {
     armeriaServerBuilder.https(port)
@@ -213,20 +225,23 @@ sealed class ArmeriaServerBuilder[F[_]] private (
   }
 
   /** Sets the [[io.netty.channel.ChannelOption]] of the server socket bound by
-    * [[com.linecorp.armeria.server.Server]].
-    * Note that the previously added option will be overridden if the same option is set again.
+    * [[com.linecorp.armeria.server.Server]]. Note that the previously added option will be
+    * overridden if the same option is set again.
     *
-    * @see [[https://armeria.dev/docs/advanced-production-checklist Production checklist]]
+    * @see
+    *   [[https://armeria.dev/docs/advanced-production-checklist Production checklist]]
     */
   def withChannelOption[T](option: ChannelOption[T], value: T): Self = {
     armeriaServerBuilder.channelOption(option, value)
     this
   }
 
-  /** Sets the [[io.netty.channel.ChannelOption]] of sockets accepted by [[com.linecorp.armeria.server.Server]].
-    * Note that the previously added option will be overridden if the same option is set again.
+  /** Sets the [[io.netty.channel.ChannelOption]] of sockets accepted by
+    * [[com.linecorp.armeria.server.Server]]. Note that the previously added option will be
+    * overridden if the same option is set again.
     *
-    * @see [[https://armeria.dev/docs/advanced-production-checklist Production checklist]]
+    * @see
+    *   [[https://armeria.dev/docs/advanced-production-checklist Production checklist]]
     */
   def withChildChannelOption[T](option: ChannelOption[T], value: T): Self = {
     armeriaServerBuilder.childChannelOption(option, value)
@@ -236,7 +251,8 @@ sealed class ArmeriaServerBuilder[F[_]] private (
   /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] from the specified
     * `keyCertChainFile`, `keyFile` and `keyPassword`.
     *
-    * @see [[withTlsCustomizer]]
+    * @see
+    *   [[withTlsCustomizer]]
     */
   def withTls(keyCertChainFile: File, keyFile: File, keyPassword: Option[String]): Self = {
     armeriaServerBuilder.tls(keyCertChainFile, keyFile, keyPassword.orNull)
@@ -246,7 +262,8 @@ sealed class ArmeriaServerBuilder[F[_]] private (
   /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] with the specified
     * `keyCertChainInputStream`, `keyInputStream` and `keyPassword`.
     *
-    * @see [[withTlsCustomizer]]
+    * @see
+    *   [[withTlsCustomizer]]
     */
   def withTls(
       keyCertChainInputStream: Resource[F, InputStream],
@@ -260,10 +277,11 @@ sealed class ArmeriaServerBuilder[F[_]] private (
         }
       }
 
-  /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] with the specified cleartext
-    * [[java.security.PrivateKey]] and [[java.security.cert.X509Certificate]] chain.
+  /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] with the specified
+    * cleartext [[java.security.PrivateKey]] and [[java.security.cert.X509Certificate]] chain.
     *
-    * @see [[withTlsCustomizer]]
+    * @see
+    *   [[withTlsCustomizer]]
     */
   def withTls(key: PrivateKey, keyCertChain: X509Certificate*): Self = {
     armeriaServerBuilder.tls(key, keyCertChain: _*)
@@ -273,7 +291,8 @@ sealed class ArmeriaServerBuilder[F[_]] private (
   /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] with the specified
     * [[javax.net.ssl.KeyManagerFactory]].
     *
-    * @see [[withTlsCustomizer]]
+    * @see
+    *   [[withTlsCustomizer]]
     */
   def withTls(keyManagerFactory: KeyManagerFactory): Self = {
     armeriaServerBuilder.tls(keyManagerFactory)
@@ -291,13 +310,14 @@ sealed class ArmeriaServerBuilder[F[_]] private (
   /** Sets the amount of time to wait after calling [[com.linecorp.armeria.server.Server#stop]] for
     * requests to go away before actually shutting down.
     *
-    * @param quietPeriod the number of milliseconds to wait for active
-    *                    requests to go end before shutting down. `scala.concurrent.duration.Duration.Zero` means
-    *                    the server will stop right away without waiting.
-    * @param timeout     the amount of time to wait before shutting down the server regardless of active
-    *                    requests.
-    *                    This should be set to a time greater than `quietPeriod` to ensure the server
-    *                    shuts down even if there is a stuck request.
+    * @param quietPeriod
+    *   the number of milliseconds to wait for active requests to go end before shutting down.
+    *   `scala.concurrent.duration.Duration.Zero` means the server will stop right away without
+    *   waiting.
+    * @param timeout
+    *   the amount of time to wait before shutting down the server regardless of active requests.
+    *   This should be set to a time greater than `quietPeriod` to ensure the server shuts down even
+    *   if there is a stuck request.
     */
   def withGracefulShutdownTimeout(quietPeriod: FiniteDuration, timeout: FiniteDuration): Self = {
     armeriaServerBuilder.gracefulShutdownTimeoutMillis(quietPeriod.toMillis, timeout.toMillis)
