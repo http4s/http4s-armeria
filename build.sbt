@@ -16,7 +16,7 @@ inThisBuild(
 )
 
 val versions = new {
-  val armeria = "1.9.2"
+  val armeria = "1.10.0"
   val fs2 = "2.5.9"
   val http4s = "0.21.26"
   val logback = "1.2.5"
