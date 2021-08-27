@@ -45,7 +45,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 
   override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
     val responseWriter = HttpResponse.streaming()
-    dispatcher.unsafeRunAndForget(
+    dispatcher.unsafeRunSync(
       toRequest(ctx, req)
         .fold(onParseFailure(_, responseWriter), handleRequest(_, responseWriter))
         .handleErrorWith {
