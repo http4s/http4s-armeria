@@ -35,7 +35,7 @@ object Main extends IOApp {
       }
       .as(ExitCode.Success)
 
-  def newServer(httpPort: Int): Resource[IO, ArmeriaServer[IO]] = {
+  def newServer(httpPort: Int): Resource[IO, ArmeriaServer] = {
     // Build gRPC service
     val grpcService = GrpcService
       .builder()

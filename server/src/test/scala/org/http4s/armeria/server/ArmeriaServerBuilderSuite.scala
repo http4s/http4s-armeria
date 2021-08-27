@@ -9,8 +9,7 @@ package org.http4s.armeria.server
 import java.net.{HttpURLConnection, URL}
 import java.nio.charset.StandardCharsets
 
-import cats.effect.concurrent.Deferred
-import cats.effect.IO
+import cats.effect.{Deferred, IO}
 import cats.implicits._
 import com.linecorp.armeria.client.logging.LoggingClient
 import com.linecorp.armeria.client.{ClientFactory, WebClient}
@@ -22,6 +21,7 @@ import org.http4s.dsl.io._
 import org.http4s.multipart.Multipart
 import org.http4s.{Header, Headers, HttpRoutes}
 import org.reactivestreams.{Subscriber, Subscription}
+import org.typelevel.ci.CIString
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -43,7 +43,7 @@ class ArmeriaServerBuilderSuite extends CatsEffectSuite with ServerFixture {
 
     case GET -> Root / "trailers" =>
       Ok("Hello").map(response =>
-        response.withTrailerHeaders(IO(Headers.of(Header("my-trailers", "foo")))))
+        response.withTrailerHeaders(IO(Headers(Header.Raw(CIString("my-trailers"), "foo")))))
 
     case _ -> Root / "never" =>
       IO.never
@@ -153,7 +153,7 @@ class ArmeriaServerBuilderSuite extends CatsEffectSuite with ServerFixture {
         override def onError(t: Throwable): Unit = {}
 
         override def onComplete(): Unit =
-          deferred.complete(true).unsafeRunSync()
+          deferred.complete(true).void.unsafeRunSync()
       })
 
     for {

@@ -20,7 +20,7 @@ import java.security.PrivateKey
 import java.security.cert.X509Certificate
 import java.util.function.{Function => JFunction}
 
-import cats.data.Reader
+import cats.data.ReaderT
 import cats.effect.std.Dispatcher
 import javax.net.ssl.KeyManagerFactory
 import org.http4s.{BuildInfo, HttpApp, HttpRoutes}
@@ -45,7 +45,7 @@ sealed class ArmeriaServerBuilder[F[_]] private(
 
   private[this] val logger: Logger = getLogger
 
-  private[this] var addHandlers: Reader[Dispatcher[F], Unit] = Reader(_ => ())
+  private[this] var addHandlers: ReaderT[F, Dispatcher[F], Unit] = ReaderT(_ => F.unit)
 
   override def bindSocketAddress(socketAddress: InetSocketAddress): Self =
     copy(socketAddress = socketAddress)
@@ -56,7 +56,7 @@ sealed class ArmeriaServerBuilder[F[_]] private(
   override def resource: Resource[F, ArmeriaServer] = {
     for {
       dispatcher <- Dispatcher[F]
-      _ <- Resource.eval(F.delay(addHandlers.run(dispatcher)))
+      _ <- Resource.eval(addHandlers.run(dispatcher))
       armeriaServer <- Resource(F.delay {
         val armeriaServer0 = armeriaServerBuilder
           .http(socketAddress)
@@ -134,8 +134,10 @@ sealed class ArmeriaServerBuilder[F[_]] private(
 
   /** Binds the specified [[org.http4s.HttpApp]] under the specified prefix. */
   def withHttpApp(prefix: String, service: HttpApp[F]): Self = {
-    addHandlers = addHandlers *> Reader({ dispatcher: Dispatcher[F] =>
-      val _ = armeriaServerBuilder.serviceUnder(prefix, ArmeriaHttp4sHandler(prefix, service, dispatcher))
+    addHandlers = addHandlers *> ReaderT({ dispatcher: Dispatcher[F] =>
+      F.delay {
+        val _ = armeriaServerBuilder.serviceUnder(prefix, ArmeriaHttp4sHandler(prefix, service, dispatcher))
+      }
     })
     this
   }

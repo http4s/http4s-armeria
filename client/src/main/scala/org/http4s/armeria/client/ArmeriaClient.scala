@@ -19,7 +19,6 @@ import java.util.concurrent.CompletableFuture
 import cats.effect.kernel.{Async, MonadCancel}
 import org.http4s.client.Client
 import org.http4s.internal.CollectionCompat.CollectionConverters._
-import org.reactivestreams.Publisher
 import org.typelevel.ci.CIString
 
 private[armeria] final class ArmeriaClient[F[_]] private[client] (
@@ -27,20 +26,21 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
 )(implicit val B: MonadCancel[F, Throwable], F: Async[F]) {
 
   def run(req: Request[F]): Resource[F, Response[F]] =
-    Resource.eval(toResponse(client.execute(toHttpRequest(req))))
+    toHttpRequest(req).map(client.execute).flatMap(r => Resource.eval(toResponse(r)))
 
   /** Converts http4s' [[Request]] to http4s' [[com.linecorp.armeria.common.HttpRequest]]. */
-  private def toHttpRequest(req: Request[F]): HttpRequest = {
+  private def toHttpRequest(req: Request[F]): Resource[F, HttpRequest] = {
     val requestHeaders = toRequestHeaders(req)
 
     if (req.body == EmptyBody)
-      HttpRequest.of(requestHeaders)
+      Resource.pure(HttpRequest.of(requestHeaders))
     else {
-      val body: Publisher[HttpData] = req.body.chunks.map { chunk =>
+      req.body.chunks.map { chunk =>
         val bytes = chunk.toArraySlice
         HttpData.copyOf(bytes.values, bytes.offset, bytes.length)
-      }.toUnicastPublisher
-      HttpRequest.of(requestHeaders, body)
+      }.toUnicastPublisher.map { body =>
+        HttpRequest.of(requestHeaders, body)
+      }
     }
   }
 
