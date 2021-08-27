@@ -39,13 +39,13 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
                                                  )(implicit F: Async[F])
   extends HttpService {
 
-  val prefixLength: Int = if (prefix.endsWith("/")) prefix.length - 1 else prefix.length
+  val prefixLength: Int = Uri.Path.unsafeFromString(prefix).segments.size
   // micro-optimization: unwrap the service and call its .run directly
   private val serviceFn: Request[F] => F[Response[F]] = service.run
 
   override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
     val responseWriter = HttpResponse.streaming()
-    dispatcher.unsafeRunSync(
+    dispatcher.unsafeRunAndForget(
       toRequest(ctx, req)
         .fold(onParseFailure(_, responseWriter), handleRequest(_, responseWriter))
         .handleErrorWith {
