@@ -6,18 +6,11 @@
 
 package org.http4s.armeria.server
 
-import cats.effect.{ConcurrentEffect, Resource}
+import cats.effect.{Async, Resource}
 import cats.implicits._
 import com.linecorp.armeria.common.util.Version
 import com.linecorp.armeria.common.{HttpRequest, HttpResponse, SessionProtocol}
-import com.linecorp.armeria.server.{
-  HttpService,
-  HttpServiceWithRoutes,
-  ServerListenerAdapter,
-  ServiceRequestContext,
-  Server => BackendServer,
-  ServerBuilder => ArmeriaBuilder
-}
+import com.linecorp.armeria.server.{HttpService, HttpServiceWithRoutes, ServerListenerAdapter, ServiceRequestContext, Server => BackendServer, ServerBuilder => ArmeriaBuilder}
 import io.micrometer.core.instrument.MeterRegistry
 import io.netty.channel.ChannelOption
 import io.netty.handler.ssl.SslContextBuilder
@@ -26,33 +19,33 @@ import java.net.InetSocketAddress
 import java.security.PrivateKey
 import java.security.cert.X509Certificate
 import java.util.function.{Function => JFunction}
+
+import cats.data.Reader
+import cats.effect.std.Dispatcher
 import javax.net.ssl.KeyManagerFactory
 import org.http4s.{BuildInfo, HttpApp, HttpRoutes}
-import org.http4s.server.{
-  DefaultServiceErrorHandler,
-  Server,
-  ServerBuilder,
-  ServiceErrorHandler,
-  defaults
-}
+import org.http4s.server.{DefaultServiceErrorHandler, Server, ServerBuilder, ServiceErrorHandler, defaults}
 import org.http4s.server.defaults.{IdleTimeout, ResponseTimeout, ShutdownTimeout}
 import org.http4s.syntax.all._
 import org.log4s.{Logger, getLogger}
+
 import scala.collection.immutable
 import scala.concurrent.duration.FiniteDuration
 
-sealed class ArmeriaServerBuilder[F[_]] private (
-    armeriaServerBuilder: ArmeriaBuilder,
-    socketAddress: InetSocketAddress,
-    serviceErrorHandler: ServiceErrorHandler[F],
-    banner: List[String]
-)(implicit protected val F: ConcurrentEffect[F])
-    extends ServerBuilder[F] {
+sealed class ArmeriaServerBuilder[F[_]] private(
+                                                 armeriaServerBuilder: ArmeriaBuilder,
+                                                 socketAddress: InetSocketAddress,
+                                                 serviceErrorHandler: ServiceErrorHandler[F],
+                                                 banner: List[String]
+                                               )(implicit protected val F: Async[F])
+  extends ServerBuilder[F] {
   override type Self = ArmeriaServerBuilder[F]
+
+  type DecoratingFunction = (HttpService, ServiceRequestContext, HttpRequest) => HttpResponse
 
   private[this] val logger: Logger = getLogger
 
-  type DecoratingFunction = (HttpService, ServiceRequestContext, HttpRequest) => HttpResponse
+  private[this] var addHandlers: Reader[Dispatcher[F], Unit] = Reader(_ => ())
 
   override def bindSocketAddress(socketAddress: InetSocketAddress): Self =
     copy(socketAddress = socketAddress)
@@ -60,36 +53,41 @@ sealed class ArmeriaServerBuilder[F[_]] private (
   override def withServiceErrorHandler(serviceErrorHandler: ServiceErrorHandler[F]): Self =
     copy(serviceErrorHandler = serviceErrorHandler)
 
-  override def resource: Resource[F, ArmeriaServer[F]] =
-    Resource(F.delay {
-      val armeriaServer0 = armeriaServerBuilder
-        .http(socketAddress)
-        .build()
+  override def resource: Resource[F, ArmeriaServer] = {
+    for {
+      dispatcher <- Dispatcher[F]
+      _ <- Resource.eval(F.delay(addHandlers.run(dispatcher)))
+      armeriaServer <- Resource(F.delay {
+        val armeriaServer0 = armeriaServerBuilder
+          .http(socketAddress)
+          .build()
 
-      armeriaServer0.addListener(new ServerListenerAdapter {
-        override def serverStarting(server: BackendServer): Unit = {
-          banner.foreach(logger.info(_))
+        armeriaServer0.addListener(new ServerListenerAdapter {
+          override def serverStarting(server: BackendServer): Unit = {
+            banner.foreach(logger.info(_))
 
-          val armeriaVersion = Version.get("armeria").artifactVersion()
+            val armeriaVersion = Version.get("armeria").artifactVersion()
 
-          logger.info(s"http4s v${BuildInfo.version} on Armeria v${armeriaVersion} started")
+            logger.info(s"http4s v${BuildInfo.version} on Armeria v${armeriaVersion} started")
+          }
+        })
+        armeriaServer0.start().join()
+
+        val armeriaServer: ArmeriaServer = new ArmeriaServer {
+          lazy val address: InetSocketAddress = {
+            val host = socketAddress.getHostString
+            val port = server.activeLocalPort()
+            new InetSocketAddress(host, port)
+          }
+
+          lazy val server: BackendServer = armeriaServer0
+          lazy val isSecure: Boolean = server.activePort(SessionProtocol.HTTPS) != null
         }
+
+        armeriaServer -> shutdown(armeriaServer.server)
       })
-      armeriaServer0.start().join()
-
-      val armeriaServer: ArmeriaServer[F] = new ArmeriaServer[F] {
-        lazy val address: InetSocketAddress = {
-          val host = socketAddress.getHostString
-          val port = server.activeLocalPort()
-          new InetSocketAddress(host, port)
-        }
-
-        lazy val server: BackendServer = armeriaServer0
-        lazy val isSecure: Boolean = server.activePort(SessionProtocol.HTTPS) != null
-      }
-
-      armeriaServer -> shutdown(armeriaServer.server)
-    })
+    } yield armeriaServer
+  }
 
   /** Binds the specified `service` at the specified path pattern.
     * See [[https://armeria.dev/docs/server-basics#path-patterns]] for detailed information of path pattens.
@@ -136,7 +134,9 @@ sealed class ArmeriaServerBuilder[F[_]] private (
 
   /** Binds the specified [[org.http4s.HttpApp]] under the specified prefix. */
   def withHttpApp(prefix: String, service: HttpApp[F]): Self = {
-    armeriaServerBuilder.serviceUnder(prefix, ArmeriaHttp4sHandler(prefix, service))
+    addHandlers = addHandlers *> Reader({ dispatcher: Dispatcher[F] =>
+      val _ = armeriaServerBuilder.serviceUnder(prefix, ArmeriaHttp4sHandler(prefix, service, dispatcher))
+    })
     this
   }
 
@@ -311,7 +311,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
   }
 
   private def shutdown(armeriaServer: BackendServer): F[Unit] =
-    F.async[Unit] { cb =>
+    F.async_[Unit] { cb =>
       val _ = armeriaServer
         .stop()
         .whenComplete { (_, cause) =>
@@ -333,8 +333,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     new ArmeriaServerBuilder(armeriaServerBuilder, socketAddress, serviceErrorHandler, banner)
 }
 
-// TODO(ikhoon): Hide `Server[F]` from public to avoid breaking changes in http4s v1.0
-trait ArmeriaServer[F[_]] extends Server[F] {
+trait ArmeriaServer extends Server {
   def server: BackendServer
 }
 
@@ -342,7 +341,7 @@ trait ArmeriaServer[F[_]] extends Server[F] {
 object ArmeriaServerBuilder {
 
   /** Returns a newly created [[org.http4s.armeria.server.ArmeriaServerBuilder]]. */
-  def apply[F[_]: ConcurrentEffect]: ArmeriaServerBuilder[F] = {
+  def apply[F[_] : Async]: ArmeriaServerBuilder[F] = {
     val defaultServerBuilder =
       BackendServer
         .builder()
