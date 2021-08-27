@@ -22,7 +22,7 @@ import com.linecorp.armeria.common.{
 }
 import com.linecorp.armeria.common.util.Version
 import com.linecorp.armeria.server.{HttpService, ServiceRequestContext}
-import io.chrisdavenport.vault.{Vault, Key => VaultKey}
+import io.chrisdavenport.vault.{Key => VaultKey, Vault}
 import fs2._
 import fs2.interop.reactivestreams._
 import java.net.InetSocketAddress
@@ -208,8 +208,8 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       )
   }
 
-  /** Discards the returned value from the specified `f` and return [[Unit]].
-    * A work around for "discarded non-Unit value" error on Java [[Void]] type.
+  /** Discards the returned value from the specified `f` and return [[Unit]]. A work around for
+    * "discarded non-Unit value" error on Java [[Void]] type.
     */
   @inline
   private def discardReturn(f: => Any): Unit = {

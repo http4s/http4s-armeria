@@ -10,8 +10,8 @@ import munit.{CatsEffectFunFixtures, CatsEffectSuite}
 import scala.concurrent.duration._
 import scala.util.Try
 
-/** A fixture that starts and stops an Armeria server automatically
-  * before and after executing a test or all tests .
+/** A fixture that starts and stops an Armeria server automatically before and after executing a
+  * test or all tests .
   */
 trait ServerFixture extends CatsEffectFunFixtures {
   this: CatsEffectSuite =>
