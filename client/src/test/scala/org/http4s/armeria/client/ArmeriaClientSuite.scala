@@ -34,7 +34,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
         "/{name}",
         new HttpService {
           override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
-            logger.info(s"req = ${req}")
+            logger.info(s"req = $req")
             HttpResponse.of(s"Hello, ${ctx.pathParam("name")}!")
           }
         }

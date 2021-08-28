@@ -50,5 +50,5 @@ class ExampleService[F[_]](implicit F: Async[F]) extends Http4sDsl[F] {
 }
 
 object ExampleService {
-  def apply[F[_] : Async] = new ExampleService[F]
+  def apply[F[_]: Async] = new ExampleService[F]
 }

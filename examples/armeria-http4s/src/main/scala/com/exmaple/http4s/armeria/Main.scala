@@ -22,8 +22,7 @@ object ArmeriaExampleApp {
     val registry = PrometheusMeterRegistries.newRegistry()
     val prometheusRegistry = registry.getPrometheusRegistry
     ArmeriaServerBuilder[F].map {
-      _
-        .bindHttp(8080)
+      _.bindHttp(8080)
         .withMeterRegistry(registry)
         .withHttpRoutes("/http4s", ExampleService[F].routes())
         .withHttpService("/metrics", PrometheusExpositionService.of(prometheusRegistry))

@@ -11,7 +11,15 @@ package client
 import cats.effect.Resource
 import cats.implicits._
 import com.linecorp.armeria.client.WebClient
-import com.linecorp.armeria.common.{HttpData, HttpHeaders, HttpMethod, HttpRequest, HttpResponse, RequestHeaders, ResponseHeaders}
+import com.linecorp.armeria.common.{
+  HttpData,
+  HttpHeaders,
+  HttpMethod,
+  HttpRequest,
+  HttpResponse,
+  RequestHeaders,
+  ResponseHeaders
+}
 import fs2.interop.reactivestreams._
 import fs2.{Chunk, Stream}
 import java.util.concurrent.CompletableFuture
@@ -35,12 +43,15 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
     if (req.body == EmptyBody)
       Resource.pure(HttpRequest.of(requestHeaders))
     else {
-      req.body.chunks.map { chunk =>
-        val bytes = chunk.toArraySlice
-        HttpData.copyOf(bytes.values, bytes.offset, bytes.length)
-      }.toUnicastPublisher.map { body =>
-        HttpRequest.of(requestHeaders, body)
-      }
+      req.body.chunks
+        .map { chunk =>
+          val bytes = chunk.toArraySlice
+          HttpData.copyOf(bytes.values, bytes.offset, bytes.length)
+        }
+        .toUnicastPublisher
+        .map { body =>
+          HttpRequest.of(requestHeaders, body)
+        }
     }
   }
 

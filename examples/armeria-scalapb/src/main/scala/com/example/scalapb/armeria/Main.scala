@@ -50,8 +50,7 @@ object Main extends IOApp {
     val serviceName = HelloServiceGrpc.SERVICE.getName
 
     ArmeriaServerBuilder[IO].flatMap {
-      _
-        .bindHttp(httpPort)
+      _.bindHttp(httpPort)
         .withIdleTimeout(Duration.Zero)
         .withRequestTimeout(Duration.Zero)
         .withHttpServiceUnder("/grpc", grpcService)

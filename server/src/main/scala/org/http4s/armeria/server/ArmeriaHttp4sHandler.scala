@@ -14,10 +14,19 @@ import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
-import com.linecorp.armeria.common.{HttpData, HttpHeaderNames, HttpHeaders, HttpMethod, HttpRequest, HttpResponse, HttpResponseWriter, ResponseHeaders}
+import com.linecorp.armeria.common.{
+  HttpData,
+  HttpHeaderNames,
+  HttpHeaders,
+  HttpMethod,
+  HttpRequest,
+  HttpResponse,
+  HttpResponseWriter,
+  ResponseHeaders
+}
 import com.linecorp.armeria.common.util.Version
 import com.linecorp.armeria.server.{HttpService, ServiceRequestContext}
-import org.typelevel.vault.{Vault, Key => VaultKey}
+import org.typelevel.vault.{Key => VaultKey, Vault}
 import fs2._
 import fs2.interop.reactivestreams._
 import java.net.InetSocketAddress
@@ -26,18 +35,23 @@ import org.http4s.internal.CollectionCompat.CollectionConverters._
 import ArmeriaHttp4sHandler.{RightUnit, canHasBody, defaultVault, toHttp4sMethod}
 import cats.effect.std.Dispatcher
 import com.comcast.ip4s.SocketAddress
-import org.http4s.server.{DefaultServiceErrorHandler, SecureSession, ServerRequestKeys, ServiceErrorHandler}
+import org.http4s.server.{
+  DefaultServiceErrorHandler,
+  SecureSession,
+  ServerRequestKeys,
+  ServiceErrorHandler
+}
 import org.typelevel.ci.CIString
 import scodec.bits.ByteVector
 
 /** An [[HttpService]] that handles the specified [[HttpApp]] under the specified `prefix`. */
 private[armeria] class ArmeriaHttp4sHandler[F[_]](
-                                                   prefix: String,
-                                                   service: HttpApp[F],
-                                                   serviceErrorHandler: ServiceErrorHandler[F],
-                                                   dispatcher: Dispatcher[F]
-                                                 )(implicit F: Async[F])
-  extends HttpService {
+    prefix: String,
+    service: HttpApp[F],
+    serviceErrorHandler: ServiceErrorHandler[F],
+    dispatcher: Dispatcher[F]
+)(implicit F: Async[F])
+    extends HttpService {
 
   val prefixLength: Int = Uri.Path.unsafeFromString(prefix).segments.size
   // micro-optimization: unwrap the service and call its .run directly
@@ -48,8 +62,8 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
     dispatcher.unsafeRunAndForget(
       toRequest(ctx, req)
         .fold(onParseFailure(_, responseWriter), handleRequest(_, responseWriter))
-        .handleErrorWith {
-          ex => F.delay {
+        .handleErrorWith { ex =>
+          F.delay {
             discardReturn(responseWriter.close(ex))
           }
         }
@@ -96,7 +110,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       writer: HttpResponseWriter,
       response: Response[F]): F[Unit] =
     response.trailerHeaders.map { trailers =>
-        writer.write(toHttpHeaders(trailers, None))
+      writer.write(toHttpHeaders(trailers, None))
       writer.close()
     }
 
@@ -180,7 +194,8 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
         Request.Connection(
           local = SocketAddress.fromInetSocketAddress(ctx.localAddress[InetSocketAddress]),
           remote = SocketAddress.fromInetSocketAddress(ctx.remoteAddress[InetSocketAddress]),
-          secure = secure)
+          secure = secure
+        )
       )
       .insert(
         ServerRequestKeys.SecureSession,
@@ -199,8 +214,8 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       )
   }
 
-  /** Discards the returned value from the specified `f` and return [[Unit]].
-    * A work around for "discarded non-Unit value" error on Java [[Void]] type.
+  /** Discards the returned value from the specified `f` and return [[Unit]]. A work around for
+    * "discarded non-Unit value" error on Java [[Void]] type.
     */
   @inline
   private def discardReturn(f: => Any): Unit = {
@@ -209,7 +224,10 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 }
 
 private[armeria] object ArmeriaHttp4sHandler {
-  def apply[F[_] : Async](prefix: String, service: HttpApp[F], dispatcher: Dispatcher[F]): ArmeriaHttp4sHandler[F] =
+  def apply[F[_]: Async](
+      prefix: String,
+      service: HttpApp[F],
+      dispatcher: Dispatcher[F]): ArmeriaHttp4sHandler[F] =
     new ArmeriaHttp4sHandler(prefix, service, DefaultServiceErrorHandler, dispatcher)
 
   private val serverSoftware: ServerSoftware =
