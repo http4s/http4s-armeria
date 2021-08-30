@@ -6,6 +6,7 @@
 
 package com.example.fs2grpc.armeria
 
+import cats.effect.std.Dispatcher
 import cats.effect.{ExitCode, IO, IOApp, Resource}
 import com.linecorp.armeria.common.scalapb.ScalaPbJsonMarshaller
 import com.linecorp.armeria.server.docs.{DocService, DocServiceFilter}
@@ -15,6 +16,7 @@ import example.armeria.grpc.hello.{HelloRequest, HelloServiceFs2Grpc, HelloServi
 import io.grpc.reflection.v1alpha.ServerReflectionGrpc
 import org.http4s.armeria.server.{ArmeriaServer, ArmeriaServerBuilder}
 import org.slf4j.LoggerFactory
+
 import scala.concurrent.duration.Duration
 
 object Main extends IOApp {
@@ -22,7 +24,7 @@ object Main extends IOApp {
   val logger = LoggerFactory.getLogger(getClass)
 
   override def run(args: List[String]): IO[ExitCode] =
-    newServer(8080)
+    Dispatcher[IO].flatMap { dispatcher => newServer(dispatcher, 8080) }
       .use { armeria =>
         logger.info(
           s"Server has been started. Serving DocService at http://127.0.0.1:${armeria.server.activeLocalPort()}/docs"
@@ -31,11 +33,11 @@ object Main extends IOApp {
       }
       .as(ExitCode.Success)
 
-  def newServer(httpPort: Int): Resource[IO, ArmeriaServer] = {
+  def newServer(dispatcher: Dispatcher[IO], httpPort: Int): Resource[IO, ArmeriaServer] = {
     // Build gRPC service
     val grpcService = GrpcService
       .builder()
-      .addService(HelloServiceFs2Grpc.bindService(new HelloServiceImpl))
+      .addService(HelloServiceFs2Grpc.bindService(dispatcher, new HelloServiceImpl))
       // Register ScalaPbJsonMarshaller to support gRPC JSON format
       .jsonMarshallerFactory(_ => ScalaPbJsonMarshaller())
       .enableUnframedRequests(true)
@@ -44,7 +46,7 @@ object Main extends IOApp {
     val exampleRequest = HelloRequest("Armeria")
     val serviceName = HelloServiceGrpc.SERVICE.getName
 
-    ArmeriaServerBuilder[IO]
+    ArmeriaServerBuilder[IO](dispatcher)
       .bindHttp(httpPort)
       .withIdleTimeout(Duration.Zero)
       .withRequestTimeout(Duration.Zero)

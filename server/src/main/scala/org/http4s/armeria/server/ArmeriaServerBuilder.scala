@@ -370,21 +370,23 @@ trait ArmeriaServer extends Server {
 /** A builder that builds Armeria server for Http4s. */
 object ArmeriaServerBuilder {
 
+  def apply[F[_] : Async](dispatcher: Dispatcher[F]): ArmeriaServerBuilder[F] = {
+    val defaultServerBuilder =
+      BackendServer
+        .builder()
+        .idleTimeoutMillis(IdleTimeout.toMillis)
+        .requestTimeoutMillis(ResponseTimeout.toMillis)
+        .gracefulShutdownTimeoutMillis(ShutdownTimeout.toMillis, ShutdownTimeout.toMillis)
+    new ArmeriaServerBuilder(
+      armeriaServerBuilder = defaultServerBuilder,
+      socketAddress = defaults.IPv4SocketAddress,
+      serviceErrorHandler = DefaultServiceErrorHandler,
+      banner = defaults.Banner,
+      dispatcher = dispatcher
+    )
+  }
+
   /** Returns a newly created [[org.http4s.armeria.server.ArmeriaServerBuilder]]. */
-  def apply[F[_]: Async]: Resource[F, ArmeriaServerBuilder[F]] =
-    Dispatcher[F].map { dispatcher =>
-      val defaultServerBuilder =
-        BackendServer
-          .builder()
-          .idleTimeoutMillis(IdleTimeout.toMillis)
-          .requestTimeoutMillis(ResponseTimeout.toMillis)
-          .gracefulShutdownTimeoutMillis(ShutdownTimeout.toMillis, ShutdownTimeout.toMillis)
-      new ArmeriaServerBuilder(
-        armeriaServerBuilder = defaultServerBuilder,
-        socketAddress = defaults.IPv4SocketAddress,
-        serviceErrorHandler = DefaultServiceErrorHandler,
-        banner = defaults.Banner,
-        dispatcher = dispatcher
-      )
-    }
+  def apply[F[_] : Async]: Resource[F, ArmeriaServerBuilder[F]] =
+    Dispatcher[F].map { dispatcher: Dispatcher[F] => apply(dispatcher) }
 }
