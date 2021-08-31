@@ -273,7 +273,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
       keyCertChainInputStream: Resource[F, InputStream],
       keyInputStream: Resource[F, InputStream],
       keyPassword: Option[String]): F[Self] =
-    (keyCertChainInputStream, keyInputStream).tupled
+    keyCertChainInputStream.both(keyInputStream)
       .use { case (keyCertChain, key) =>
         F.delay {
           armeriaServerBuilder.tls(keyCertChain, key, keyPassword.orNull)

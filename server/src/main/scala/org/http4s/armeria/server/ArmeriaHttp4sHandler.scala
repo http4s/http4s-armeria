@@ -108,7 +108,8 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       writer: HttpResponseWriter,
       response: Response[F]): F[Unit] =
     response.trailerHeaders.map { trailers =>
-      writer.write(toHttpHeaders(trailers, None))
+      if (trailers.headers.nonEmpty)
+        writer.write(toHttpHeaders(trailers, None))
       writer.close()
     }
 
