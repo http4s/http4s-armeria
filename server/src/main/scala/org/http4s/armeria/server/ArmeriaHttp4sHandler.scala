@@ -62,10 +62,8 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
     dispatcher.unsafeRunAndForget(
       toRequest(ctx, req)
         .fold(onParseFailure(_, responseWriter), handleRequest(_, responseWriter))
-        .handleErrorWith { ex =>
-          F.delay {
+        .handleError { ex =>
             discardReturn(responseWriter.close(ex))
-          }
         }
     )
     responseWriter
