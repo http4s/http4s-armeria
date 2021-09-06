@@ -26,7 +26,6 @@ class TlsServerSuite extends CatsEffectSuite with ServerFixture {
       .withHttps(0)
       .withHttpRoutes("/", routes)
       .withTls(certR, keyR, None)
-      .unsafeRunSync()
   }
 
   test("https requests") {

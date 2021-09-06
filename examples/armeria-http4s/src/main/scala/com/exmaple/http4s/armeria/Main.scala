@@ -18,20 +18,19 @@ object ArmeriaExample extends IOApp {
 }
 
 object ArmeriaExampleApp {
-  def builder[F[_]: Async]: Resource[F, ArmeriaServerBuilder[F]] = {
+  def builder[F[_] : Async]: ArmeriaServerBuilder[F] = {
     val registry = PrometheusMeterRegistries.newRegistry()
     val prometheusRegistry = registry.getPrometheusRegistry
-    ArmeriaServerBuilder[F].map {
-      _.bindHttp(8080)
-        .withMeterRegistry(registry)
-        .withHttpRoutes("/http4s", ExampleService[F].routes())
-        .withHttpService("/metrics", PrometheusExpositionService.of(prometheusRegistry))
-        .withDecorator(
-          MetricCollectingService.newDecorator(MeterIdPrefixFunction.ofDefault("server")))
-        .withDecoratorUnder("/black-knight", new NoneShallPass(_))
-    }
+    ArmeriaServerBuilder[F]
+      .bindHttp(8080)
+      .withMeterRegistry(registry)
+      .withHttpRoutes("/http4s", ExampleService[F].routes())
+      .withHttpService("/metrics", PrometheusExpositionService.of(prometheusRegistry))
+      .withDecorator(
+        MetricCollectingService.newDecorator(MeterIdPrefixFunction.ofDefault("server")))
+      .withDecoratorUnder("/black-knight", new NoneShallPass(_))
   }
 
   def resource[F[_]: Async]: Resource[F, ArmeriaServer] =
-    builder[F].flatMap(_.resource)
+    builder[F].resource
 }

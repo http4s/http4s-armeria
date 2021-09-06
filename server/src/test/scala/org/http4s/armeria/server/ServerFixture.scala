@@ -35,9 +35,9 @@ trait ServerFixture extends CatsEffectFunFixtures {
   )
 
   private def setUp(): Unit = {
-    val serverBuilder = ArmeriaServerBuilder[IO].map(_.withGracefulShutdownTimeout(0.seconds, 0.seconds))
-    val configured = serverBuilder.map(configureServer)
-    val allocated = configured.flatMap(_.resource).allocated.unsafeRunSync()
+    val serverBuilder = ArmeriaServerBuilder[IO].withGracefulShutdownTimeout(0.seconds, 0.seconds)
+    val configured = configureServer(serverBuilder)
+    val allocated = configured.resource.allocated.unsafeRunSync()
     armeriaServerWrapper = allocated._1
     server = armeriaServerWrapper.server
     releaseToken = allocated._2

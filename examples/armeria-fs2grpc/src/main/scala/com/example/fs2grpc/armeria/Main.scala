@@ -46,7 +46,7 @@ object Main extends IOApp {
     val exampleRequest = HelloRequest("Armeria")
     val serviceName = HelloServiceGrpc.SERVICE.getName
 
-    ArmeriaServerBuilder[IO](dispatcher)
+    ArmeriaServerBuilder[IO]
       .bindHttp(httpPort)
       .withIdleTimeout(Duration.Zero)
       .withRequestTimeout(Duration.Zero)
