@@ -8,6 +8,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [ 11, 16 ]
     if: "!contains(github.event.head_commit.message, 'ci skip')"
     steps:
       - uses: actions/checkout@v2
@@ -24,8 +27,8 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v1
         with:
-          java-version: 11
+          java-version: ${{ matrix.java }}
       - name: "2.13 Test"
-        run: sbt "++ 2.13.2 test"
+        run: sbt "++ 2.13.6 test"
       - name: "2.12 Test"
-        run: sbt "++ 2.12.11 test"
+        run: sbt "++ 2.12.14 test"
