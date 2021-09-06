@@ -1,11 +1,10 @@
 package org.http4s.armeria.server
 
 import cats.effect.{IO, Resource}
-import io.netty.handler.ssl.util.SelfSignedCertificate
 import java.io.FileInputStream
-
 import com.linecorp.armeria.client.{ClientFactory, WebClient}
 import com.linecorp.armeria.common.HttpStatus
+import com.linecorp.armeria.internal.common.util.SelfSignedCertificate
 import munit.CatsEffectSuite
 import org.http4s.HttpRoutes
 import org.http4s.dsl.io._
