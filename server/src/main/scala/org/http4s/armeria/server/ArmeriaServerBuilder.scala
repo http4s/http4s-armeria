@@ -33,7 +33,6 @@ import org.log4s.{Logger, getLogger}
 
 import scala.collection.immutable
 import scala.concurrent.duration.FiniteDuration
-import scala.util.chaining._
 
 sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
                                                 socketAddress: InetSocketAddress,
@@ -161,7 +160,7 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
     * [[com.linecorp.armeria.server.ServerBuilder]].
     */
   def withArmeriaBuilder(customizer: ArmeriaBuilder => Unit): Self =
-    atBuild(_ tap customizer)
+    atBuild { ab => customizer(ab); ab }
 
   /** Sets the idle timeout of a connection in milliseconds for keep-alive.
     *
