@@ -5,7 +5,7 @@ import sbtrelease.ReleasePlugin.autoImport._
 inThisBuild(
   Seq(
     organization := "org.http4s",
-    crossScalaVersions := Seq("2.13.6", "2.12.14"),
+    crossScalaVersions := Seq("2.13.6", "2.12.15"),
     scalaVersion := crossScalaVersions.value.head,
     homepage := Some(url("https://github.com/http4s/http4s-armeria")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
