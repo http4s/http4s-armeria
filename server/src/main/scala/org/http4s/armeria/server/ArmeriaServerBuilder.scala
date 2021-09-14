@@ -12,7 +12,14 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import com.linecorp.armeria.common.util.Version
 import com.linecorp.armeria.common.{HttpRequest, HttpResponse, SessionProtocol}
-import com.linecorp.armeria.server.{HttpService, HttpServiceWithRoutes, ServerListenerAdapter, ServiceRequestContext, Server => BackendServer, ServerBuilder => ArmeriaBuilder}
+import com.linecorp.armeria.server.{
+  HttpService,
+  HttpServiceWithRoutes,
+  Server => BackendServer,
+  ServerBuilder => ArmeriaBuilder,
+  ServerListenerAdapter,
+  ServiceRequestContext
+}
 import io.micrometer.core.instrument.MeterRegistry
 import io.netty.channel.ChannelOption
 import io.netty.handler.ssl.SslContextBuilder
@@ -26,7 +33,13 @@ import cats.effect.std.Dispatcher
 import javax.net.ssl.KeyManagerFactory
 import org.http4s.armeria.server.ArmeriaServerBuilder.AddServices
 import org.http4s.{BuildInfo, HttpApp, HttpRoutes}
-import org.http4s.server.{DefaultServiceErrorHandler, Server, ServerBuilder, ServiceErrorHandler, defaults}
+import org.http4s.server.{
+  DefaultServiceErrorHandler,
+  Server,
+  ServerBuilder,
+  ServiceErrorHandler,
+  defaults
+}
 import org.http4s.server.defaults.{IdleTimeout, ResponseTimeout, ShutdownTimeout}
 import org.http4s.syntax.all._
 import org.log4s.{Logger, getLogger}
@@ -34,12 +47,12 @@ import org.log4s.{Logger, getLogger}
 import scala.collection.immutable
 import scala.concurrent.duration.FiniteDuration
 
-sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
-                                                socketAddress: InetSocketAddress,
-                                                serviceErrorHandler: ServiceErrorHandler[F],
-                                                banner: List[String],
-                                               )(implicit protected val F: Async[F])
-  extends ServerBuilder[F] {
+sealed class ArmeriaServerBuilder[F[_]] private (
+    addServices: AddServices[F],
+    socketAddress: InetSocketAddress,
+    serviceErrorHandler: ServiceErrorHandler[F],
+    banner: List[String])(implicit protected val F: Async[F])
+    extends ServerBuilder[F] {
   override type Self = ArmeriaServerBuilder[F]
 
   type DecoratingFunction = (HttpService, ServiceRequestContext, HttpRequest) => HttpResponse
@@ -63,7 +76,7 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
             .gracefulShutdownTimeoutMillis(ShutdownTimeout.toMillis, ShutdownTimeout.toMillis)
         }
         builderWithServices <- addServices(defaultServerBuilder, dispatcher)
-        res <- F.delay({
+        res <- F.delay {
           val armeriaServer0 = builderWithServices.http(socketAddress).build()
 
           armeriaServer0.addListener(new ServerListenerAdapter {
@@ -89,7 +102,8 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
           }
 
           armeriaServer -> shutdown(armeriaServer.server)
-        })} yield res)
+        }
+      } yield res)
     }
 
   /** Binds the specified `service` at the specified path pattern. See
@@ -97,14 +111,15 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
     * pattens.
     */
   def withHttpService(
-                       pathPattern: String,
-                       service: (ServiceRequestContext, HttpRequest) => HttpResponse): Self =
-    atBuild(_.service(
-      pathPattern,
-      new HttpService {
-        override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse =
-          service(ctx, req)
-      }))
+      pathPattern: String,
+      service: (ServiceRequestContext, HttpRequest) => HttpResponse): Self =
+    atBuild(
+      _.service(
+        pathPattern,
+        new HttpService {
+          override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse =
+            service(ctx, req)
+        }))
 
   /** Binds the specified [[com.linecorp.armeria.server.HttpService]] at the specified path pattern.
     * See [[https://armeria.dev/docs/server-basics#path-patterns]] for detailed information of path
@@ -132,7 +147,8 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
   /** Binds the specified [[org.http4s.HttpApp]] under the specified prefix. */
   def withHttpApp(prefix: String, service: HttpApp[F]): Self =
     copy(addServices = (ab, dispatcher) =>
-      addServices(ab, dispatcher).map(_.serviceUnder(prefix, ArmeriaHttp4sHandler(prefix, service, dispatcher))))
+      addServices(ab, dispatcher).map(
+        _.serviceUnder(prefix, ArmeriaHttp4sHandler(prefix, service, dispatcher))))
 
   /** Decorates all HTTP services with the specified [[DecoratingFunction]]. */
   def withDecorator(decorator: DecoratingFunction): Self =
@@ -146,14 +162,12 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
     * [[DecoratingFunction]].
     */
   def withDecoratorUnder(prefix: String, decorator: DecoratingFunction): Self =
-    atBuild(_.decoratorUnder(
-      prefix,
-      (delegate, ctx, req) => decorator(delegate, ctx, req)))
+    atBuild(_.decoratorUnder(prefix, (delegate, ctx, req) => decorator(delegate, ctx, req)))
 
   /** Decorates HTTP services under the specified directory with the specified `decorator`. */
   def withDecoratorUnder(
-                          prefix: String,
-                          decorator: JFunction[_ >: HttpService, _ <: HttpService]): Self =
+      prefix: String,
+      decorator: JFunction[_ >: HttpService, _ <: HttpService]): Self =
     atBuild(_.decoratorUnder(prefix, decorator))
 
   /** Configures the Armeria server using the specified
@@ -165,7 +179,7 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
   /** Sets the idle timeout of a connection in milliseconds for keep-alive.
     *
     * @param idleTimeout
-    * the timeout. `scala.concurrent.duration.Duration.Zero` disables the timeout.
+    *   the timeout. `scala.concurrent.duration.Duration.Zero` disables the timeout.
     */
   def withIdleTimeout(idleTimeout: FiniteDuration): Self =
     atBuild(_.idleTimeoutMillis(idleTimeout.toMillis))
@@ -173,7 +187,7 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
   /** Sets the timeout of a request.
     *
     * @param requestTimeout
-    * the timeout. `scala.concurrent.duration.Duration.Zero` disables the timeout.
+    *   the timeout. `scala.concurrent.duration.Duration.Zero` disables the timeout.
     */
   def withRequestTimeout(requestTimeout: FiniteDuration): Self =
     atBuild(_.requestTimeoutMillis(requestTimeout.toMillis))
@@ -181,18 +195,18 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
   /** Adds an HTTP port that listens on all available network interfaces.
     *
     * @param port
-    * the HTTP port number.
+    *   the HTTP port number.
     * @see
-    * [[com.linecorp.armeria.server.ServerBuilder#https(localAddress:java\.net\.InetSocketAddress):com\.linecorp\.armeria\.server\.ServerBuilder*]]
+    *   [[com.linecorp.armeria.server.ServerBuilder#https(localAddress:java\.net\.InetSocketAddress):com\.linecorp\.armeria\.server\.ServerBuilder*]]
     */
   def withHttp(port: Int): Self = atBuild(_.http(port))
 
   /** Adds an HTTPS port that listens on all available network interfaces.
     *
     * @param port
-    * the HTTPS port number.
+    *   the HTTPS port number.
     * @see
-    * [[com.linecorp.armeria.server.ServerBuilder#https(localAddress:java\.net\.InetSocketAddress):com\.linecorp\.armeria\.server\.ServerBuilder*]]
+    *   [[com.linecorp.armeria.server.ServerBuilder#https(localAddress:java\.net\.InetSocketAddress):com\.linecorp\.armeria\.server\.ServerBuilder*]]
     */
   def withHttps(port: Int): Self = atBuild(_.https(port))
 
@@ -201,7 +215,7 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
     * overridden if the same option is set again.
     *
     * @see
-    * [[https://armeria.dev/docs/advanced-production-checklist Production checklist]]
+    *   [[https://armeria.dev/docs/advanced-production-checklist Production checklist]]
     */
   def withChannelOption[T](option: ChannelOption[T], value: T): Self =
     atBuild(_.channelOption(option, value))
@@ -211,7 +225,7 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
     * overridden if the same option is set again.
     *
     * @see
-    * [[https://armeria.dev/docs/advanced-production-checklist Production checklist]]
+    *   [[https://armeria.dev/docs/advanced-production-checklist Production checklist]]
     */
   def withChildChannelOption[T](option: ChannelOption[T], value: T): Self =
     atBuild(_.childChannelOption(option, value))
@@ -220,7 +234,7 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
     * `keyCertChainFile`, `keyFile` and `keyPassword`.
     *
     * @see
-    * [[withTlsCustomizer]]
+    *   [[withTlsCustomizer]]
     */
   def withTls(keyCertChainFile: File, keyFile: File, keyPassword: Option[String]): Self =
     atBuild(_.tls(keyCertChainFile, keyFile, keyPassword.orNull))
@@ -229,27 +243,28 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
     * `keyCertChainInputStream`, `keyInputStream` and `keyPassword`.
     *
     * @see
-    * [[withTlsCustomizer]]
+    *   [[withTlsCustomizer]]
     */
   def withTls(
-               keyCertChainInputStream: Resource[F, InputStream],
-               keyInputStream: Resource[F, InputStream],
-               keyPassword: Option[String]): Self =
-    copy(addServices = (armeriaBuilder, dispatcher) => addServices(armeriaBuilder, dispatcher) flatMap {
-      ab =>
-        keyCertChainInputStream.both(keyInputStream)
+      keyCertChainInputStream: Resource[F, InputStream],
+      keyInputStream: Resource[F, InputStream],
+      keyPassword: Option[String]): Self =
+    copy(addServices = (armeriaBuilder, dispatcher) =>
+      addServices(armeriaBuilder, dispatcher).flatMap { ab =>
+        keyCertChainInputStream
+          .both(keyInputStream)
           .use { case (keyCertChain, key) =>
             F.delay {
               ab.tls(keyCertChain, key, keyPassword.orNull)
             }
           }
-    })
+      })
 
   /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] with the specified
     * cleartext [[java.security.PrivateKey]] and [[java.security.cert.X509Certificate]] chain.
     *
     * @see
-    * [[withTlsCustomizer]]
+    *   [[withTlsCustomizer]]
     */
   def withTls(key: PrivateKey, keyCertChain: X509Certificate*): Self =
     atBuild(_.tls(key, keyCertChain: _*))
@@ -258,7 +273,7 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
     * [[javax.net.ssl.KeyManagerFactory]].
     *
     * @see
-    * [[withTlsCustomizer]]
+    *   [[withTlsCustomizer]]
     */
   def withTls(keyManagerFactory: KeyManagerFactory): Self =
     atBuild(_.tls(keyManagerFactory))
@@ -273,13 +288,13 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
     * requests to go away before actually shutting down.
     *
     * @param quietPeriod
-    * the number of milliseconds to wait for active requests to go end before shutting down.
-    * `scala.concurrent.duration.Duration.Zero` means the server will stop right away without
-    * waiting.
+    *   the number of milliseconds to wait for active requests to go end before shutting down.
+    *   `scala.concurrent.duration.Duration.Zero` means the server will stop right away without
+    *   waiting.
     * @param timeout
-    * the amount of time to wait before shutting down the server regardless of active requests.
-    * This should be set to a time greater than `quietPeriod` to ensure the server shuts down even
-    * if there is a stuck request.
+    *   the amount of time to wait before shutting down the server regardless of active requests.
+    *   This should be set to a time greater than `quietPeriod` to ensure the server shuts down even
+    *   if there is a stuck request.
     */
   def withGracefulShutdownTimeout(quietPeriod: FiniteDuration, timeout: FiniteDuration): Self =
     atBuild(_.gracefulShutdownTimeoutMillis(quietPeriod.toMillis, timeout.toMillis))
@@ -303,19 +318,16 @@ sealed class ArmeriaServerBuilder[F[_]] private(addServices: AddServices[F],
   override def withBanner(banner: immutable.Seq[String]): Self = copy(banner = banner.toList)
 
   private def copy(
-                    addServices: AddServices[F] = addServices,
-                    socketAddress: InetSocketAddress = socketAddress,
-                    serviceErrorHandler: ServiceErrorHandler[F] = serviceErrorHandler,
-                    banner: List[String] = banner,
-                  ): Self =
-    new ArmeriaServerBuilder(
-      addServices,
-      socketAddress,
-      serviceErrorHandler,
-      banner)
+      addServices: AddServices[F] = addServices,
+      socketAddress: InetSocketAddress = socketAddress,
+      serviceErrorHandler: ServiceErrorHandler[F] = serviceErrorHandler,
+      banner: List[String] = banner
+  ): Self =
+    new ArmeriaServerBuilder(addServices, socketAddress, serviceErrorHandler, banner)
 
   private def atBuild(f: ArmeriaBuilder => ArmeriaBuilder): Self =
-    copy(addServices = (armeriaBuilder, dispatcher) => addServices(armeriaBuilder, dispatcher) map f)
+    copy(addServices = (armeriaBuilder, dispatcher) =>
+      addServices(armeriaBuilder, dispatcher).map(f))
 }
 
 trait ArmeriaServer extends Server {
@@ -327,11 +339,10 @@ object ArmeriaServerBuilder {
   type AddServices[F[_]] = (ArmeriaBuilder, Dispatcher[F]) => F[ArmeriaBuilder]
 
   /** Returns a newly created [[org.http4s.armeria.server.ArmeriaServerBuilder]]. */
-  def apply[F[_] : Async]: ArmeriaServerBuilder[F] = {
+  def apply[F[_]: Async]: ArmeriaServerBuilder[F] =
     new ArmeriaServerBuilder(
       (armeriaBuilder, _) => armeriaBuilder.pure,
       socketAddress = defaults.IPv4SocketAddress,
       serviceErrorHandler = DefaultServiceErrorHandler,
       banner = defaults.Banner)
-  }
 }

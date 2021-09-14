@@ -16,9 +16,18 @@ class TlsServerSuite extends CatsEffectSuite with ServerFixture {
     Ok()
   }
 
+  var certificate: SelfSignedCertificate = _
+
+  override def beforeAll(): Unit = {
+    certificate = new SelfSignedCertificate
+  }
+
+  override def afterAll(): Unit = {
+    certificate.delete()
+  }
+
   override protected def configureServer(
       customizer: ArmeriaServerBuilder[IO]): ArmeriaServerBuilder[IO] = {
-    val certificate = new SelfSignedCertificate
     val certR = Resource.fromAutoCloseable(IO(new FileInputStream(certificate.certificate)))
     val keyR = Resource.fromAutoCloseable(IO(new FileInputStream(certificate.privateKey())))
     customizer

@@ -18,7 +18,7 @@ object ArmeriaExample extends IOApp {
 }
 
 object ArmeriaExampleApp {
-  def builder[F[_] : Async]: ArmeriaServerBuilder[F] = {
+  def builder[F[_]: Async]: ArmeriaServerBuilder[F] = {
     val registry = PrometheusMeterRegistries.newRegistry()
     val prometheusRegistry = registry.getPrometheusRegistry
     ArmeriaServerBuilder[F]
