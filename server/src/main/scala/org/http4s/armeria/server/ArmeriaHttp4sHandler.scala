@@ -8,8 +8,12 @@ package org.http4s
 package armeria
 package server
 
-import cats.effect.{ConcurrentEffect, IO}
-import cats.implicits._
+import cats.effect.{Async, IO}
+import cats.effect.unsafe.implicits.global
+import cats.syntax.applicativeError._
+import cats.syntax.flatMap._
+import cats.syntax.functor._
+import cats.syntax.option._
 import com.linecorp.armeria.common.{
   HttpData,
   HttpHeaderNames,
@@ -22,43 +26,46 @@ import com.linecorp.armeria.common.{
 }
 import com.linecorp.armeria.common.util.Version
 import com.linecorp.armeria.server.{HttpService, ServiceRequestContext}
-import io.chrisdavenport.vault.{Key => VaultKey, Vault}
+import org.typelevel.vault.{Key => VaultKey, Vault}
 import fs2._
 import fs2.interop.reactivestreams._
 import java.net.InetSocketAddress
+
 import org.http4s.internal.CollectionCompat.CollectionConverters._
 import ArmeriaHttp4sHandler.{RightUnit, canHasBody, defaultVault, toHttp4sMethod}
+import cats.effect.std.Dispatcher
+import com.comcast.ip4s.SocketAddress
 import org.http4s.server.{
   DefaultServiceErrorHandler,
   SecureSession,
   ServerRequestKeys,
   ServiceErrorHandler
 }
+import org.typelevel.ci.CIString
 import scodec.bits.ByteVector
 
 /** An [[HttpService]] that handles the specified [[HttpApp]] under the specified `prefix`. */
 private[armeria] class ArmeriaHttp4sHandler[F[_]](
     prefix: String,
     service: HttpApp[F],
-    serviceErrorHandler: ServiceErrorHandler[F]
-)(implicit F: ConcurrentEffect[F])
+    serviceErrorHandler: ServiceErrorHandler[F],
+    dispatcher: Dispatcher[F]
+)(implicit F: Async[F])
     extends HttpService {
 
-  val prefixLength: Int = if (prefix.endsWith("/")) prefix.length - 1 else prefix.length
+  val prefixLength: Int = Uri.Path.unsafeFromString(prefix).segments.size
   // micro-optimization: unwrap the service and call its .run directly
   private val serviceFn: Request[F] => F[Response[F]] = service.run
 
   override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
     val responseWriter = HttpResponse.streaming()
-    F.runAsync(
+    dispatcher.unsafeRunAndForget(
       toRequest(ctx, req)
-        .fold(onParseFailure(_, responseWriter), handleRequest(_, responseWriter))) {
-      case Right(_) =>
-        IO.unit
-      case Left(ex) =>
-        discardReturn(responseWriter.close(ex))
-        IO.unit
-    }.unsafeRunSync()
+        .fold(onParseFailure(_, responseWriter), handleRequest(_, responseWriter))
+        .handleError { ex =>
+            discardReturn(responseWriter.close(ex))
+        }
+    )
     responseWriter
   }
 
@@ -85,7 +92,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       response.body.chunks.compile.toVector
         .flatMap { vector =>
           vector.foreach { chunk =>
-            val bytes = chunk.toBytes
+            val bytes = chunk.toArraySlice
             writer.write(HttpData.wrap(bytes.values, bytes.offset, bytes.length))
           }
           maybeWriteTrailersAndClose(writer, response)
@@ -101,7 +108,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       writer: HttpResponseWriter,
       response: Response[F]): F[Unit] =
     response.trailerHeaders.map { trailers =>
-      if (trailers.nonEmpty)
+      if (trailers.headers.nonEmpty)
         writer.write(toHttpHeaders(trailers, None))
       writer.close()
     }
@@ -111,12 +118,12 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       body: Stream[F, Byte]): Pull[F, INothing, Unit] =
     body.pull.uncons.flatMap {
       case Some((head, tail)) =>
-        val bytes = head.toBytes
+        val bytes = head.toArraySlice
         writer.write(HttpData.wrap(bytes.values, bytes.offset, bytes.length))
         if (tail == Stream.empty)
           Pull.done
         else
-          Pull.eval(F.async[Unit] { cb =>
+          Pull.eval(F.async_[Unit] { cb =>
             discardReturn(writer.whenConsumed().thenRun(() => cb(RightUnit)))
           }) >> writeOnDemand(writer, tail)
       case None =>
@@ -146,16 +153,13 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
   }
 
   /** Converts http4s' [[Headers]] to Armeria's [[HttpHeaders]]. */
-  private def toHttpHeaders(headers: Headers, status: Option[Status]): HttpHeaders =
-    if (headers.isEmpty)
-      status.fold(HttpHeaders.of())(s => ResponseHeaders.of(s.code))
-    else {
-      val builder = status.fold(HttpHeaders.builder())(s => ResponseHeaders.builder(s.code))
+  private def toHttpHeaders(headers: Headers, status: Option[Status]): HttpHeaders = {
+    val builder = status.fold(HttpHeaders.builder())(s => ResponseHeaders.builder(s.code))
 
-      for (header <- headers.toList)
-        builder.add(header.name.toString, header.value)
-      builder.build()
-    }
+    for (header <- headers.headers)
+      builder.add(header.name.toString, header.value)
+    builder.build()
+  }
 
   /** Converts Armeria's [[com.linecorp.armeria.common.HttpHeaders]] to http4s' [[Headers]]. */
   private def toHeaders(req: HttpRequest): Headers =
@@ -163,7 +167,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       req
         .headers()
         .asScala
-        .map(entry => Header(entry.getKey.toString(), entry.getValue))
+        .map(entry => Header.Raw(CIString(entry.getKey.toString()), entry.getValue))
         .toList
     )
 
@@ -174,7 +178,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
         .toStream[F]
         .flatMap { obj =>
           val data = obj.asInstanceOf[HttpData]
-          Stream.chunk(Chunk.bytes(data.array()))
+          Stream.chunk(Chunk.array(data.array()))
         }
     else
       EmptyBody
@@ -187,9 +191,10 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       .insert(
         Request.Keys.ConnectionInfo,
         Request.Connection(
-          local = ctx.localAddress[InetSocketAddress],
-          remote = ctx.remoteAddress[InetSocketAddress],
-          secure = secure)
+          local = SocketAddress.fromInetSocketAddress(ctx.localAddress[InetSocketAddress]),
+          remote = SocketAddress.fromInetSocketAddress(ctx.remoteAddress[InetSocketAddress]),
+          secure = secure
+        )
       )
       .insert(
         ServerRequestKeys.SecureSession,
@@ -218,8 +223,11 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 }
 
 private[armeria] object ArmeriaHttp4sHandler {
-  def apply[F[_]: ConcurrentEffect](prefix: String, service: HttpApp[F]): ArmeriaHttp4sHandler[F] =
-    new ArmeriaHttp4sHandler(prefix, service, DefaultServiceErrorHandler)
+  def apply[F[_]: Async](
+      prefix: String,
+      service: HttpApp[F],
+      dispatcher: Dispatcher[F]): ArmeriaHttp4sHandler[F] =
+    new ArmeriaHttp4sHandler(prefix, service, DefaultServiceErrorHandler, dispatcher)
 
   private val serverSoftware: ServerSoftware =
     ServerSoftware("armeria", Some(Version.get("armeria").artifactVersion()))

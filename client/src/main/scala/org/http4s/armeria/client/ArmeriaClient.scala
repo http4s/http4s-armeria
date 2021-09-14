@@ -8,7 +8,7 @@ package org.http4s
 package armeria
 package client
 
-import cats.effect.{Bracket, ConcurrentEffect, Resource}
+import cats.effect.Resource
 import cats.implicits._
 import com.linecorp.armeria.client.WebClient
 import com.linecorp.armeria.common.{
@@ -23,29 +23,35 @@ import com.linecorp.armeria.common.{
 import fs2.interop.reactivestreams._
 import fs2.{Chunk, Stream}
 import java.util.concurrent.CompletableFuture
+
+import cats.effect.kernel.{Async, MonadCancel}
 import org.http4s.client.Client
 import org.http4s.internal.CollectionCompat.CollectionConverters._
-import org.reactivestreams.Publisher
+import org.typelevel.ci.CIString
 
 private[armeria] final class ArmeriaClient[F[_]] private[client] (
     private val client: WebClient
-)(implicit val B: Bracket[F, Throwable], F: ConcurrentEffect[F]) {
+)(implicit val B: MonadCancel[F, Throwable], F: Async[F]) {
 
   def run(req: Request[F]): Resource[F, Response[F]] =
-    Resource.eval(toResponse(client.execute(toHttpRequest(req))))
+    toHttpRequest(req).map(client.execute).flatMap(r => Resource.eval(toResponse(r)))
 
   /** Converts http4s' [[Request]] to http4s' [[com.linecorp.armeria.common.HttpRequest]]. */
-  private def toHttpRequest(req: Request[F]): HttpRequest = {
+  private def toHttpRequest(req: Request[F]): Resource[F, HttpRequest] = {
     val requestHeaders = toRequestHeaders(req)
 
     if (req.body == EmptyBody)
-      HttpRequest.of(requestHeaders)
+      Resource.pure(HttpRequest.of(requestHeaders))
     else {
-      val body: Publisher[HttpData] = req.body.chunks.map { chunk =>
-        val bytes = chunk.toBytes
-        HttpData.copyOf(bytes.values, bytes.offset, bytes.length)
-      }.toUnicastPublisher
-      HttpRequest.of(requestHeaders, body)
+      req.body.chunks
+        .map { chunk =>
+          val bytes = chunk.toArraySlice
+          HttpData.copyOf(bytes.values, bytes.offset, bytes.length)
+        }
+        .toUnicastPublisher
+        .map { body =>
+          HttpRequest.of(requestHeaders, body)
+        }
     }
   }
 
@@ -53,7 +59,7 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
   private def toRequestHeaders(req: Request[F]): RequestHeaders = {
     val builder = RequestHeaders.builder(HttpMethod.valueOf(req.method.name), req.uri.renderString)
     req.headers.foreach { header =>
-      val _ = builder.add(header.name.value, header.value)
+      val _ = builder.add(header.name.toString, header.value)
     }
     builder.build()
   }
@@ -68,14 +74,14 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
         splitResponse
           .body()
           .toStream
-          .flatMap(x => Stream.chunk(Chunk.bytes(x.array())))
+          .flatMap(x => Stream.chunk(Chunk.array(x.array())))
     } yield Response(status = status, headers = toHeaders(headers), body = body)
   }
 
   /** Converts [[java.util.concurrent.CompletableFuture]] to `F[_]` */
   private def fromCompletableFuture(
       completableFuture: CompletableFuture[ResponseHeaders]): F[ResponseHeaders] =
-    F.async[ResponseHeaders] { cb =>
+    F.async_[ResponseHeaders] { cb =>
       val _ = completableFuture.handle { (result, ex) =>
         if (ex != null)
           cb(Left(ex))
@@ -89,12 +95,12 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
   private def toHeaders(req: HttpHeaders): Headers =
     Headers(
       req.asScala
-        .map(entry => Header(entry.getKey.toString(), entry.getValue))
+        .map(entry => Header.Raw(CIString(entry.getKey.toString()), entry.getValue))
         .toList
     )
 }
 
 object ArmeriaClient {
-  def apply[F[_]](client: WebClient = WebClient.of())(implicit F: ConcurrentEffect[F]): Client[F] =
+  def apply[F[_]](client: WebClient = WebClient.of())(implicit F: Async[F]): Client[F] =
     Client(new ArmeriaClient(client).run)
 }

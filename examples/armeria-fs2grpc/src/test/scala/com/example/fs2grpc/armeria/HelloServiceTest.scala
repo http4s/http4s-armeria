@@ -7,6 +7,7 @@
 package com.example.fs2grpc.armeria
 
 import cats.effect.IO
+import cats.effect.std.Dispatcher
 import com.linecorp.armeria.client.Clients
 import com.linecorp.armeria.client.grpc.{GrpcClientOptions, GrpcClientStubFactory}
 import example.armeria.grpc.hello.{HelloReply, HelloRequest, HelloServiceFs2Grpc, HelloServiceGrpc}
@@ -15,23 +16,22 @@ import fs2._
 import munit.CatsEffectSuite
 
 class HelloServiceTest extends CatsEffectSuite {
-  private def setUp() =
-    Main.newServer(0).map { armeriaServer =>
-      val httpPort = armeriaServer.server.activeLocalPort()
+  private def setUp() = for {
+    dispatcher <- Dispatcher[IO]
+    armeriaServer <- Main.newServer(dispatcher, 0)
+    httpPort = armeriaServer.server.activeLocalPort()
+  } yield Clients
+    .builder(s"gproto+http://127.0.0.1:$httpPort/grpc/")
+    .option(GrpcClientOptions.GRPC_CLIENT_STUB_FACTORY.newValue(new GrpcClientStubFactory {
 
-      Clients
-        .builder(s"gproto+http://127.0.0.1:$httpPort/grpc/")
-        .option(GrpcClientOptions.GRPC_CLIENT_STUB_FACTORY.newValue(new GrpcClientStubFactory {
+      override def findServiceDescriptor(clientType: Class[_]): ServiceDescriptor =
+        HelloServiceGrpc.SERVICE
 
-          override def findServiceDescriptor(clientType: Class[_]): ServiceDescriptor =
-            HelloServiceGrpc.SERVICE
+      override def newClientStub(clientType: Class[_], channel: Channel): AnyRef =
+        HelloServiceFs2Grpc.stub[IO](dispatcher, channel)
 
-          override def newClientStub(clientType: Class[_], channel: Channel): AnyRef =
-            HelloServiceFs2Grpc.stub[IO](channel)
-
-        }))
+    }))
         .build(classOf[HelloServiceFs2Grpc[IO, Metadata]])
-    }
 
   private val fixture = ResourceSuiteLocalFixture("fixture", setUp())
 
