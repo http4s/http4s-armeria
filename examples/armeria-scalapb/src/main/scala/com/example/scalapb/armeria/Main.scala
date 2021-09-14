@@ -35,7 +35,7 @@ object Main extends IOApp {
       }
       .as(ExitCode.Success)
 
-  def newServer(httpPort: Int): Resource[IO, ArmeriaServer[IO]] = {
+  def newServer(httpPort: Int): Resource[IO, ArmeriaServer] = {
     // Build gRPC service
     val grpcService = GrpcService
       .builder()
@@ -49,27 +49,26 @@ object Main extends IOApp {
     val exampleRequest = HelloRequest("Armeria")
     val serviceName = HelloServiceGrpc.SERVICE.getName
 
-    ArmeriaServerBuilder[IO]
-      .bindHttp(httpPort)
-      .withIdleTimeout(Duration.Zero)
-      .withRequestTimeout(Duration.Zero)
-      .withHttpServiceUnder("/grpc", grpcService)
-      .withHttpRoutes("/rest", ExampleService[IO].routes())
-      .withDecorator(LoggingService.newDecorator())
-      // Add DocService for browsing the list of gRPC services and
-      // invoking a service operation from a web form.
-      // See https://armeria.dev/docs/server-docservice for more information.
-      .withHttpServiceUnder(
-        "/docs",
-        DocService
-          .builder()
-          .exampleRequests(serviceName, "Hello", exampleRequest)
-          .exampleRequests(serviceName, "LazyHello", exampleRequest)
-          .exampleRequests(serviceName, "BlockingHello", exampleRequest)
-          .exclude(DocServiceFilter.ofServiceName(ServerReflectionGrpc.SERVICE_NAME))
-          .build()
-      )
-      .withGracefulShutdownTimeout(Duration.Zero, Duration.Zero)
-      .resource
+    ArmeriaServerBuilder[IO].bindHttp(httpPort)
+        .withIdleTimeout(Duration.Zero)
+        .withRequestTimeout(Duration.Zero)
+        .withHttpServiceUnder("/grpc", grpcService)
+        .withHttpRoutes("/rest", ExampleService[IO].routes())
+        .withDecorator(LoggingService.newDecorator())
+        // Add DocService for browsing the list of gRPC services and
+        // invoking a service operation from a web form.
+        // See https://armeria.dev/docs/server-docservice for more information.
+        .withHttpServiceUnder(
+          "/docs",
+          DocService
+            .builder()
+            .exampleRequests(serviceName, "Hello", exampleRequest)
+            .exampleRequests(serviceName, "LazyHello", exampleRequest)
+            .exampleRequests(serviceName, "BlockingHello", exampleRequest)
+            .exclude(DocServiceFilter.ofServiceName(ServerReflectionGrpc.SERVICE_NAME))
+            .build()
+        )
+        .withGracefulShutdownTimeout(Duration.Zero, Duration.Zero)
+        .resource
   }
 }

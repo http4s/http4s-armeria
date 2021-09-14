@@ -17,8 +17,8 @@ inThisBuild(
 
 val versions = new {
   val armeria = "1.11.0"
-  val fs2 = "2.5.9"
-  val http4s = "0.21.28"
+  val fs2 = "3.1.1"
+  val http4s = "0.23.1"
   val logback = "1.2.5"
   val micrometer = "1.7.3"
   val munit = "0.7.29"
@@ -27,7 +27,7 @@ val versions = new {
 
 val munit = Seq(
   "org.scalameta" %% "munit" % versions.munit % Test,
-  "org.typelevel" %% "munit-cats-effect-2" % versions.catsEffectMunit % Test
+  "org.typelevel" %% "munit-cats-effect-3" % versions.catsEffectMunit % Test
 )
 
 lazy val root = project
@@ -49,7 +49,7 @@ lazy val server = project
       "co.fs2" %% "fs2-reactive-streams" % versions.fs2,
       "org.http4s" %% "http4s-server" % versions.http4s,
       "ch.qos.logback" % "logback-classic" % versions.logback % Test,
-      "org.http4s" %% "http4s-dsl" % versions.http4s % Test
+      "org.http4s" %% "http4s-dsl" % versions.http4s % Test,
     ) ++ munit
   )
 
@@ -86,7 +86,9 @@ lazy val exampleArmeriaScalaPB = project
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
       "com.linecorp.armeria" % "armeria-grpc" % versions.armeria,
       "com.linecorp.armeria" %% "armeria-scalapb" % versions.armeria,
-      "org.http4s" %% "http4s-dsl" % versions.http4s
+      "org.http4s" %% "http4s-dsl" % versions.http4s,
+      "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-2" % "protobuf",
+      "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-2"
     ) ++ munit,
     Compile / PB.targets := Seq(
       scalapb.gen() -> (Compile / sourceManaged).value,
@@ -104,7 +106,9 @@ lazy val exampleArmeriaFs2Grpc = project
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
       "com.linecorp.armeria" % "armeria-grpc" % versions.armeria,
       "com.linecorp.armeria" %% "armeria-scalapb" % versions.armeria,
-      "org.http4s" %% "http4s-dsl" % versions.http4s
+      "org.http4s" %% "http4s-dsl" % versions.http4s,
+      "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-2" % "protobuf",
+      "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-2"
     ) ++ munit
   )
   .enablePlugins(PrivateProjectPlugin, Fs2Grpc)

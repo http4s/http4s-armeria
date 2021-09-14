@@ -16,7 +16,7 @@ import scala.util.Try
 trait ServerFixture extends CatsEffectFunFixtures {
   this: CatsEffectSuite =>
 
-  private var armeriaServerWrapper: ArmeriaServer[IO] = _
+  private var armeriaServerWrapper: ArmeriaServer = _
   private var server: Server = _
   private var releaseToken: IO[Unit] = _
 

@@ -18,7 +18,7 @@ object ArmeriaExample extends IOApp {
 }
 
 object ArmeriaExampleApp {
-  def builder[F[_]: ConcurrentEffect: Timer]: ArmeriaServerBuilder[F] = {
+  def builder[F[_] : Async]: ArmeriaServerBuilder[F] = {
     val registry = PrometheusMeterRegistries.newRegistry()
     val prometheusRegistry = registry.getPrometheusRegistry
     ArmeriaServerBuilder[F]
@@ -31,6 +31,6 @@ object ArmeriaExampleApp {
       .withDecoratorUnder("/black-knight", new NoneShallPass(_))
   }
 
-  def resource[F[_]: ConcurrentEffect: Timer]: Resource[F, ArmeriaServer[F]] =
+  def resource[F[_]: Async]: Resource[F, ArmeriaServer] =
     builder[F].resource
 }

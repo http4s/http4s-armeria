@@ -143,7 +143,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
       .range(1, 6)
       .covary[IO]
       .map(_.toString)
-      .through(text.utf8Encode)
+      .through(text.utf8.encode)
 
     val req = Request(method = Method.POST, uri = uri"/client-streaming", body = body)
     val response = client.expect[String](IO(req)).unsafeRunSync()
@@ -157,7 +157,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
       .range(1, 6)
       .covary[IO]
       .map(_.toString)
-      .through(text.utf8Encode)
+      .through(text.utf8.encode)
 
     val req = Request(method = Method.POST, uri = uri"/bidi-streaming", body = body)
     val response = client
@@ -167,6 +167,6 @@ class ArmeriaClientSuite extends CatsEffectSuite {
       .toList
       .unsafeRunSync()
       .reduce(_ + " " + _)
-    assertEquals(response, "1! 2! 3! 4! 5! ")
+    assertEquals(response, "1! 2! 3! 4! 5!")
   }
 }
