@@ -133,6 +133,7 @@ lazy val publishSettings = List(
     else
       Some(Opts.resolver.sonatypeStaging)
   },
+  releaseCrossBuild := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   publishMavenStyle := true,
   pomIncludeRepository := { _ => false },
