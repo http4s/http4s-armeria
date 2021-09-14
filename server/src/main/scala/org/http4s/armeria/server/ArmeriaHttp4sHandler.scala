@@ -63,7 +63,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       toRequest(ctx, req)
         .fold(onParseFailure(_, responseWriter), handleRequest(_, responseWriter))
         .handleError { ex =>
-            discardReturn(responseWriter.close(ex))
+          discardReturn(responseWriter.close(ex))
         }
     )
     responseWriter
