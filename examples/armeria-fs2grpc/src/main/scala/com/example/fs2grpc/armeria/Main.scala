@@ -24,7 +24,8 @@ object Main extends IOApp {
   val logger = LoggerFactory.getLogger(getClass)
 
   override def run(args: List[String]): IO[ExitCode] =
-    Dispatcher[IO].flatMap { dispatcher => newServer(dispatcher, 8080) }
+    Dispatcher[IO]
+      .flatMap(dispatcher => newServer(dispatcher, 8080))
       .use { armeria =>
         logger.info(
           s"Server has been started. Serving DocService at http://127.0.0.1:${armeria.server.activeLocalPort()}/docs"
