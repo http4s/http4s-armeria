@@ -31,7 +31,7 @@ class HelloServiceTest extends CatsEffectSuite {
         HelloServiceFs2Grpc.stub[IO](dispatcher, channel)
 
     }))
-        .build(classOf[HelloServiceFs2Grpc[IO, Metadata]])
+    .build(classOf[HelloServiceFs2Grpc[IO, Metadata]])
 
   private val fixture = ResourceSuiteLocalFixture("fixture", setUp())
 
