@@ -1,5 +1,5 @@
 // http4s organization
-addSbtPlugin("org.http4s" % "sbt-http4s-org" % "0.2.1")
+addSbtPlugin("org.http4s" % "sbt-http4s-org" % "0.12.0")
 // Scalac options
 addSbtPlugin("io.github.davidgregory084" % "sbt-tpolecat" % "0.1.20")
 // Release
