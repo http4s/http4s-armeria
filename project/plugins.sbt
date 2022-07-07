@@ -6,7 +6,7 @@ addSbtPlugin("io.github.davidgregory084" % "sbt-tpolecat" % "0.1.22")
 addSbtPlugin("com.github.sbt" % "sbt-release" % "1.1.0")
 addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.1.2")
 // ScalaDoc API mapping
-addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "3.0.0")
+addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "3.0.2")
 
 // ScalaPB Reactor
 addSbtPlugin("com.thesamet" % "sbt-protoc" % "1.0.6")
