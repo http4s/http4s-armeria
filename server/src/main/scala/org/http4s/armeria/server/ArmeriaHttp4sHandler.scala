@@ -115,7 +115,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 
   private def writeOnDemand(
       writer: HttpResponseWriter,
-      body: Stream[F, Byte]): Pull[F, INothing, Unit] =
+      body: Stream[F, Byte]): Pull[F, Nothing, Unit] =
     body.pull.uncons.flatMap {
       case Some((head, tail)) =>
         val bytes = head.toArraySlice
