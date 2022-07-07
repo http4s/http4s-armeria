@@ -73,7 +73,7 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
       body =
         splitResponse
           .body()
-          .toStream
+          .toStreamBuffered[F](1)
           .flatMap(x => Stream.chunk(Chunk.array(x.array())))
     } yield Response(status = status, headers = toHeaders(headers), body = body)
   }

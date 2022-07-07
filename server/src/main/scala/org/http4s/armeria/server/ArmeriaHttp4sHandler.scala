@@ -175,7 +175,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
   private def toBody(req: HttpRequest): EntityBody[F] =
     if (canHasBody(req.method()))
       req
-        .toStream[F]
+        .toStreamBuffered[F](1)
         .flatMap { obj =>
           val data = obj.asInstanceOf[HttpData]
           Stream.chunk(Chunk.array(data.array()))
