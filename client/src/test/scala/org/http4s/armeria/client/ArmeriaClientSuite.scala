@@ -54,7 +54,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
         new HttpService {
           override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
             val body: IO[Option[String]] = req
-              .toStream[IO]
+              .toStreamBuffered[IO](1)
               .collect { case data: HttpData => data.toStringUtf8 }
               .reduce(_ + " " + _)
               .compile
@@ -80,7 +80,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
             val writer = HttpResponse.streaming()
             writer.write(ResponseHeaders.of(HttpStatus.OK))
             req
-              .toStream[IO]
+              .toStreamBuffered[IO](1)
               .collect { case data: HttpData =>
                 writer.write(HttpData.ofUtf8(s"${data.toStringUtf8}!"))
               }
