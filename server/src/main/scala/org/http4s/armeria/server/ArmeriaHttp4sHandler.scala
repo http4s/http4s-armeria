@@ -141,7 +141,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       uri = uri,
       httpVersion =
         if (ctx.sessionProtocol().isMultiplex)
-          HttpVersion.`HTTP/2.0`
+          HttpVersion.`HTTP/2`
         else if (req.headers().get(HttpHeaderNames.HOST) != null)
           HttpVersion.`HTTP/1.1`
         else
