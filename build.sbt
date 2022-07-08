@@ -5,7 +5,7 @@ import sbtrelease.ReleasePlugin.autoImport._
 inThisBuild(
   Seq(
     organization := "org.http4s",
-    crossScalaVersions := Seq("2.13.6", "2.12.15"),
+    crossScalaVersions := Seq("2.13.8", "2.12.16"),
     scalaVersion := crossScalaVersions.value.head,
     homepage := Some(url("https://github.com/http4s/http4s-armeria")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
@@ -16,13 +16,13 @@ inThisBuild(
 )
 
 val versions = new {
-  val armeria = "1.17.0"
-  val fs2 = "3.1.2"
-  val http4s = "0.23.3"
-  val logback = "1.2.6"
-  val micrometer = "1.7.5"
+  val armeria = "1.11.0"
+  val fs2 = "3.2.9"
+  val http4s = "0.23.13"
+  val logback = "1.2.11"
+  val micrometer = "1.7.12"
   val munit = "0.7.29"
-  val catsEffectMunit = "1.0.6"
+  val catsEffectMunit = "1.0.7"
 }
 
 val munit = Seq(

@@ -115,7 +115,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 
   private def writeOnDemand(
       writer: HttpResponseWriter,
-      body: Stream[F, Byte]): Pull[F, INothing, Unit] =
+      body: Stream[F, Byte]): Pull[F, Nothing, Unit] =
     body.pull.uncons.flatMap {
       case Some((head, tail)) =>
         val bytes = head.toArraySlice
@@ -141,7 +141,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       uri = uri,
       httpVersion =
         if (ctx.sessionProtocol().isMultiplex)
-          HttpVersion.`HTTP/2.0`
+          HttpVersion.`HTTP/2`
         else if (req.headers().get(HttpHeaderNames.HOST) != null)
           HttpVersion.`HTTP/1.1`
         else
@@ -175,7 +175,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
   private def toBody(req: HttpRequest): EntityBody[F] =
     if (canHasBody(req.method()))
       req
-        .toStream[F]
+        .toStreamBuffered[F](1)
         .flatMap { obj =>
           val data = obj.asInstanceOf[HttpData]
           Stream.chunk(Chunk.array(data.array()))
