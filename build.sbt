@@ -97,7 +97,8 @@ lazy val exampleArmeriaScalaPB = project
       scalapb.gen() -> (Compile / sourceManaged).value,
       scalapb.reactor.ReactorCodeGenerator -> (Compile / sourceManaged).value
     ),
-    headerSources / excludeFilter := AllPassFilter
+    headerSources / excludeFilter := AllPassFilter,
+    unusedCompileDependenciesTest := {}
   )
   .enablePlugins(NoPublishPlugin)
   .dependsOn(server)
