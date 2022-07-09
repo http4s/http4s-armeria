@@ -43,15 +43,30 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
     if (req.body == EmptyBody)
       Resource.pure(HttpRequest.of(requestHeaders))
     else {
-      req.body.chunks
-        .map { chunk =>
-          val bytes = chunk.toArraySlice
-          HttpData.copyOf(bytes.values, bytes.offset, bytes.length)
-        }
-        .toUnicastPublisher
-        .map { body =>
-          HttpRequest.of(requestHeaders, body)
-        }
+      if (req.contentLength.isDefined) {
+        // A non stream response. ExchangeType.RESPONSE_STREAMING will be inferred.
+        val request: F[HttpRequest] =
+          req.body.chunks.compile
+            .to(Array)
+            .map { array =>
+              array.map { chunk =>
+                val bytes = chunk.toArraySlice
+                HttpData.wrap(bytes.values, bytes.offset, bytes.length)
+              }
+            }
+            .map(data => HttpRequest.of(requestHeaders, data: _*))
+        Resource.eval(request)
+      } else {
+        req.body.chunks
+          .map { chunk =>
+            val bytes = chunk.toArraySlice
+            HttpData.copyOf(bytes.values, bytes.offset, bytes.length)
+          }
+          .toUnicastPublisher
+          .map { body =>
+            HttpRequest.of(requestHeaders, body)
+          }
+      }
     }
   }
 
