@@ -3,27 +3,27 @@ package armeria
 package client
 
 import cats.effect.{IO, Resource}
+import com.linecorp.armeria.client.ClientRequestContext
 import com.linecorp.armeria.client.logging.{ContentPreviewingClient, LoggingClient}
 import com.linecorp.armeria.common.{
-  HttpData,
-  HttpRequest,
-  HttpResponse,
-  HttpStatus,
+  ExchangeType, HttpData, HttpRequest, HttpResponse, HttpStatus,
   ResponseHeaders
 }
 import com.linecorp.armeria.server.logging.{ContentPreviewingService, LoggingService}
 import com.linecorp.armeria.server.{HttpService, Server, ServiceRequestContext}
 import fs2._
 import fs2.interop.reactivestreams._
+import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue}
 import munit.CatsEffectSuite
 import org.http4s.client.Client
 import org.http4s.implicits.http4sLiteralsSyntax
-import org.slf4j.LoggerFactory
-
+import org.slf4j.{Logger, LoggerFactory}
 import scala.concurrent.duration._
 
 class ArmeriaClientSuite extends CatsEffectSuite {
-  private val logger = LoggerFactory.getLogger(getClass)
+  private val logger: Logger = LoggerFactory.getLogger(getClass)
+
+  private val clientContexts: BlockingQueue[ClientRequestContext] = new LinkedBlockingQueue
 
   private def setUp(): IO[(Server, Client[IO])] = {
     val server = Server
@@ -102,6 +102,10 @@ class ArmeriaClientSuite extends CatsEffectSuite {
         .unsafe[IO](s"http://127.0.0.1:${server.activeLocalPort()}")
         .withDecorator(ContentPreviewingClient.newDecorator(Int.MaxValue))
         .withDecorator(LoggingClient.newDecorator())
+        .withDecorator((delegate, ctx, req) => {
+          clientContexts.offer(ctx)
+          delegate.execute(ctx, req)
+        })
         .withResponseTimeout(10.seconds)
         .build()
 
@@ -109,8 +113,12 @@ class ArmeriaClientSuite extends CatsEffectSuite {
     }
   }
 
+  override def afterEach(context: AfterEach): Unit = {
+    clientContexts.clear()
+  }
+
   private val fixture =
-    ResourceSuiteLocalFixture("fixture", Resource.make(setUp())(x => IO(x._1.stop().join()).void))
+    ResourceSuiteLocalFixture("fixture", Resource.make(setUp())(x => IO(x._1.stop()).void))
 
   override def munitFixtures = List(fixture)
 
@@ -134,6 +142,15 @@ class ArmeriaClientSuite extends CatsEffectSuite {
     val req = Request(method = Method.POST, uri = uri"/post", body = body)
     val response = client.expect[String](IO(req)).unsafeRunSync()
     assertEquals(response, "Hello, Armeria!")
+  }
+
+  test("ExchangeType - disable request-streaming") {
+    val (_, client) = fixture()
+    val req = Request[IO](method = Method.POST, uri = uri"/post").withEntity("Armeria")
+    val response = client.expect[String](IO(req)).unsafeRunSync()
+    assertEquals(response, "Hello, Armeria!")
+    val exchangeType = clientContexts.take().exchangeType()
+    assertEquals(exchangeType, ExchangeType.RESPONSE_STREAMING)
   }
 
   test("client-streaming") {
