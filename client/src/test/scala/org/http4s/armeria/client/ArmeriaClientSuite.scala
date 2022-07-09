@@ -22,7 +22,11 @@ import cats.effect.{IO, Resource}
 import com.linecorp.armeria.client.ClientRequestContext
 import com.linecorp.armeria.client.logging.{ContentPreviewingClient, LoggingClient}
 import com.linecorp.armeria.common.{
-  ExchangeType, HttpData, HttpRequest, HttpResponse, HttpStatus,
+  ExchangeType,
+  HttpData,
+  HttpRequest,
+  HttpResponse,
+  HttpStatus,
   ResponseHeaders
 }
 import com.linecorp.armeria.server.logging.{ContentPreviewingService, LoggingService}
@@ -118,10 +122,10 @@ class ArmeriaClientSuite extends CatsEffectSuite {
         .unsafe[IO](s"http://127.0.0.1:${server.activeLocalPort()}")
         .withDecorator(ContentPreviewingClient.newDecorator(Int.MaxValue))
         .withDecorator(LoggingClient.newDecorator())
-        .withDecorator((delegate, ctx, req) => {
+        .withDecorator { (delegate, ctx, req) =>
           clientContexts.offer(ctx)
           delegate.execute(ctx, req)
-        })
+        }
         .withResponseTimeout(10.seconds)
         .build()
 
@@ -129,9 +133,8 @@ class ArmeriaClientSuite extends CatsEffectSuite {
     }
   }
 
-  override def afterEach(context: AfterEach): Unit = {
+  override def afterEach(context: AfterEach): Unit =
     clientContexts.clear()
-  }
 
   private val fixture =
     ResourceSuiteLocalFixture("fixture", Resource.make(setUp())(x => IO(x._1.stop()).void))
