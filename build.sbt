@@ -75,7 +75,8 @@ lazy val exampleArmeriaHttp4s = project
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
       "io.micrometer" % "micrometer-registry-prometheus" % versions.micrometer,
       "org.http4s" %% "http4s-dsl" % versions.http4s
-    )
+    ),
+    headerSources / excludeFilter := AllPassFilter
   )
   .enablePlugins(NoPublishPlugin)
   .dependsOn(server)
@@ -95,7 +96,8 @@ lazy val exampleArmeriaScalaPB = project
     Compile / PB.targets := Seq(
       scalapb.gen() -> (Compile / sourceManaged).value,
       scalapb.reactor.ReactorCodeGenerator -> (Compile / sourceManaged).value
-    )
+    ),
+    headerSources / excludeFilter := AllPassFilter
   )
   .enablePlugins(NoPublishPlugin)
   .dependsOn(server)
@@ -111,7 +113,8 @@ lazy val exampleArmeriaFs2Grpc = project
       "org.http4s" %% "http4s-dsl" % versions.http4s,
       "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-2" % "protobuf",
       "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-2"
-    ) ++ munit
+    ) ++ munit,
+    headerSources / excludeFilter := AllPassFilter
   )
   .enablePlugins(NoPublishPlugin, Fs2Grpc)
   .dependsOn(server)
