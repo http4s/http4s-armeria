@@ -90,8 +90,8 @@ lazy val exampleArmeriaScalaPB = project
       "com.linecorp.armeria" % "armeria-grpc" % versions.armeria,
       "com.linecorp.armeria" %% "armeria-scalapb" % versions.armeria,
       "org.http4s" %% "http4s-dsl" % versions.http4s,
-      "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-2" % "protobuf",
-      "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-2"
+      "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-3" % "protobuf",
+      "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-3"
     ) ++ munit,
     Compile / PB.targets := Seq(
       scalapb.gen() -> (Compile / sourceManaged).value,
@@ -112,8 +112,8 @@ lazy val exampleArmeriaFs2Grpc = project
       "com.linecorp.armeria" % "armeria-grpc" % versions.armeria,
       "com.linecorp.armeria" %% "armeria-scalapb" % versions.armeria,
       "org.http4s" %% "http4s-dsl" % versions.http4s,
-      "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-2" % "protobuf",
-      "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-2"
+      "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-3" % "protobuf",
+      "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-3"
     ) ++ munit,
     headerSources / excludeFilter := AllPassFilter
   )
