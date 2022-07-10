@@ -1,7 +1,7 @@
 import sbt.Keys.{libraryDependencies, sourceManaged}
 import sbtprotoc.ProtocPlugin.autoImport.PB
 
-ThisBuild / tlBaseVersion := "0.3.0"
+ThisBuild / tlBaseVersion := "0.3"
 ThisBuild / developers := List(
   Developer(
     "ikhoon",
