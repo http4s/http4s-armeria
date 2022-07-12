@@ -1,19 +1,23 @@
 import sbt.Keys.{libraryDependencies, sourceManaged}
 import sbtprotoc.ProtocPlugin.autoImport.PB
-import sbtrelease.ReleasePlugin.autoImport._
 
-inThisBuild(
-  Seq(
-    organization := "org.http4s",
-    crossScalaVersions := Seq("2.13.8", "2.12.16"),
-    scalaVersion := crossScalaVersions.value.head,
-    homepage := Some(url("https://github.com/http4s/http4s-armeria")),
-    licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
-    startYear := Some(2020),
-    resolvers += Resolver.mavenLocal,
-    Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true -Dcom.linecorp.armeria.verboseExceptions=always"
+ThisBuild / tlBaseVersion := "0.3"
+ThisBuild / developers := List(
+  Developer(
+    "ikhoon",
+    "Ikhun Um",
+    "ih.pert@gmail.com",
+    url("https://github.com/ikhoon")
   )
 )
+ThisBuild / crossScalaVersions := Seq("2.13.8", "2.12.16")
+ThisBuild / scalaVersion := crossScalaVersions.value.head
+ThisBuild / tlCiReleaseBranches := Seq("main")
+ThisBuild / homepage := Some(url("https://github.com/http4s/http4s-armeria"))
+ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
+ThisBuild / startYear := Some(2020)
+ThisBuild / resolvers += Resolver.mavenLocal
+ThisBuild / Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true -Dcom.linecorp.armeria.verboseExceptions=always"
 
 val versions = new {
   val armeria = "1.17.1"
@@ -32,7 +36,7 @@ val munit = Seq(
 
 lazy val root = project
   .in(file("."))
-  .enablePlugins(PrivateProjectPlugin)
+  .enablePlugins(NoPublishPlugin)
   .settings(
     // Root project
     name := "http4s-armeria",
@@ -41,7 +45,6 @@ lazy val root = project
   .aggregate(server, client, exampleArmeriaHttp4s, exampleArmeriaScalaPB)
 
 lazy val server = project
-  .settings(publishSettings: _*)
   .settings(
     name := "http4s-armeria-server",
     libraryDependencies ++= List(
@@ -54,7 +57,6 @@ lazy val server = project
   )
 
 lazy val client = project
-  .settings(publishSettings: _*)
   .settings(
     name := "http4s-armeria-client",
     libraryDependencies ++= List(
@@ -73,9 +75,10 @@ lazy val exampleArmeriaHttp4s = project
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
       "io.micrometer" % "micrometer-registry-prometheus" % versions.micrometer,
       "org.http4s" %% "http4s-dsl" % versions.http4s
-    )
+    ),
+    headerSources / excludeFilter := AllPassFilter
   )
-  .enablePlugins(PrivateProjectPlugin)
+  .enablePlugins(NoPublishPlugin)
   .dependsOn(server)
 
 lazy val exampleArmeriaScalaPB = project
@@ -93,9 +96,11 @@ lazy val exampleArmeriaScalaPB = project
     Compile / PB.targets := Seq(
       scalapb.gen() -> (Compile / sourceManaged).value,
       scalapb.reactor.ReactorCodeGenerator -> (Compile / sourceManaged).value
-    )
+    ),
+    headerSources / excludeFilter := AllPassFilter,
+    unusedCompileDependenciesTest := {}
   )
-  .enablePlugins(PrivateProjectPlugin)
+  .enablePlugins(NoPublishPlugin)
   .dependsOn(server)
 
 lazy val exampleArmeriaFs2Grpc = project
@@ -109,42 +114,8 @@ lazy val exampleArmeriaFs2Grpc = project
       "org.http4s" %% "http4s-dsl" % versions.http4s,
       "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-3" % "protobuf",
       "com.thesamet.scalapb.common-protos" %% "proto-google-common-protos-scalapb_0.11" % "2.5.0-3"
-    ) ++ munit
+    ) ++ munit,
+    headerSources / excludeFilter := AllPassFilter
   )
-  .enablePlugins(PrivateProjectPlugin, Fs2Grpc)
+  .enablePlugins(NoPublishPlugin, Fs2Grpc)
   .dependsOn(server)
-
-lazy val publishSettings = List(
-  scmInfo := Some(
-    ScmInfo(
-      url("https://github.com/http4s/http4s-armeria"),
-      "git@github.com:http4s/http4s-armeria.git")),
-  developers := List(
-    Developer(
-      "ikhoon",
-      "Ikhun Um",
-      "ih.pert@gmail.com",
-      url("https://github.com/ikhoon")
-    )
-  ),
-  publishTo := {
-    if (isSnapshot.value)
-      Some(Opts.resolver.sonatypeSnapshots)
-    else
-      Some(Opts.resolver.sonatypeStaging)
-  },
-  releaseCrossBuild := true,
-  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
-  publishMavenStyle := true,
-  pomIncludeRepository := { _ => false },
-  Test / publishArtifact := false,
-  credentials ++= (for {
-    username <- sys.env.get("SONATYPE_USERNAME")
-    password <- sys.env.get("SONATYPE_PASSWORD")
-  } yield Credentials(
-    "Sonatype Nexus Repository Manager",
-    "oss.sonatype.org",
-    username,
-    password
-  ))
-)

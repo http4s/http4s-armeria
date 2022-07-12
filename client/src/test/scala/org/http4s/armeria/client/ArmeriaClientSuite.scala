@@ -1,3 +1,19 @@
+/*
+ * Copyright 2020 http4s.org
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.http4s
 package armeria
 package client
@@ -6,7 +22,11 @@ import cats.effect.{IO, Resource}
 import com.linecorp.armeria.client.ClientRequestContext
 import com.linecorp.armeria.client.logging.{ContentPreviewingClient, LoggingClient}
 import com.linecorp.armeria.common.{
-  ExchangeType, HttpData, HttpRequest, HttpResponse, HttpStatus,
+  ExchangeType,
+  HttpData,
+  HttpRequest,
+  HttpResponse,
+  HttpStatus,
   ResponseHeaders
 }
 import com.linecorp.armeria.server.logging.{ContentPreviewingService, LoggingService}
@@ -102,10 +122,10 @@ class ArmeriaClientSuite extends CatsEffectSuite {
         .unsafe[IO](s"http://127.0.0.1:${server.activeLocalPort()}")
         .withDecorator(ContentPreviewingClient.newDecorator(Int.MaxValue))
         .withDecorator(LoggingClient.newDecorator())
-        .withDecorator((delegate, ctx, req) => {
+        .withDecorator { (delegate, ctx, req) =>
           clientContexts.offer(ctx)
           delegate.execute(ctx, req)
-        })
+        }
         .withResponseTimeout(10.seconds)
         .build()
 
@@ -113,9 +133,8 @@ class ArmeriaClientSuite extends CatsEffectSuite {
     }
   }
 
-  override def afterEach(context: AfterEach): Unit = {
+  override def afterEach(context: AfterEach): Unit =
     clientContexts.clear()
-  }
 
   private val fixture =
     ResourceSuiteLocalFixture("fixture", Resource.make(setUp())(x => IO(x._1.stop()).void))
