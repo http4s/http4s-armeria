@@ -1,10 +1,6 @@
 // http4s organization
-addSbtPlugin("org.http4s" % "sbt-http4s-org" % "0.2.1")
-// Scalac options
-addSbtPlugin("io.github.davidgregory084" % "sbt-tpolecat" % "0.3.3")
-// Release
-addSbtPlugin("com.github.sbt" % "sbt-release" % "1.1.0")
-addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.1.2")
+addSbtPlugin("org.http4s" % "sbt-http4s-org" % "0.14.3")
+
 // ScalaDoc API mapping
 addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "3.0.2")
 
