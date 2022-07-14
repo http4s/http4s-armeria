@@ -1,7 +1,7 @@
 import sbt.Keys.{libraryDependencies, sourceManaged}
 import sbtprotoc.ProtocPlugin.autoImport.PB
 
-ThisBuild / tlBaseVersion := "0.3"
+ThisBuild / tlBaseVersion := "0.2"
 ThisBuild / developers := List(
   Developer(
     "ikhoon",
@@ -12,7 +12,7 @@ ThisBuild / developers := List(
 )
 ThisBuild / crossScalaVersions := Seq("2.13.8", "2.12.16")
 ThisBuild / scalaVersion := crossScalaVersions.value.head
-ThisBuild / tlCiReleaseBranches := Seq("main")
+ThisBuild / tlCiReleaseBranches := Seq("series/0.2")
 ThisBuild / homepage := Some(url("https://github.com/http4s/http4s-armeria"))
 ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
 ThisBuild / startYear := Some(2020)
@@ -21,8 +21,8 @@ ThisBuild / Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true 
 
 val versions = new {
   val armeria = "1.17.1"
-  val fs2 = "3.2.10"
-  val http4s = "0.23.13"
+  val fs2 = "2.5.11"
+  val http4s = "0.22.14"
   val logback = "1.2.11"
   val micrometer = "1.9.2"
   val munit = "0.7.29"
@@ -31,7 +31,7 @@ val versions = new {
 
 val munit = Seq(
   "org.scalameta" %% "munit" % versions.munit % Test,
-  "org.typelevel" %% "munit-cats-effect-3" % versions.catsEffectMunit % Test
+  "org.typelevel" %% "munit-cats-effect-2" % versions.catsEffectMunit % Test
 )
 
 lazy val root = project

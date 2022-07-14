@@ -18,7 +18,7 @@ package org.http4s
 package armeria
 package client
 
-import cats.effect.Resource
+import cats.effect.{Bracket, ConcurrentEffect, Resource}
 import cats.implicits._
 import com.linecorp.armeria.client.WebClient
 import com.linecorp.armeria.common.{
@@ -34,14 +34,13 @@ import fs2.interop.reactivestreams._
 import fs2.{Chunk, Stream}
 import java.util.concurrent.CompletableFuture
 
-import cats.effect.kernel.{Async, MonadCancel}
 import org.http4s.client.Client
 import org.http4s.internal.CollectionCompat.CollectionConverters._
 import org.typelevel.ci.CIString
 
 private[armeria] final class ArmeriaClient[F[_]] private[client] (
     private val client: WebClient
-)(implicit val B: MonadCancel[F, Throwable], F: Async[F]) {
+)(implicit val B: Bracket[F, Throwable], F: ConcurrentEffect[F]) {
 
   def run(req: Request[F]): Resource[F, Response[F]] =
     toHttpRequest(req).map(client.execute).flatMap(r => Resource.eval(toResponse(r)))
@@ -51,7 +50,7 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
     val requestHeaders = toRequestHeaders(req)
 
     if (req.body == EmptyBody)
-      Resource.pure(HttpRequest.of(requestHeaders))
+      Resource.pure[F, HttpRequest](HttpRequest.of(requestHeaders))
     else {
       if (req.contentLength.isDefined) {
         // A non stream response. ExchangeType.RESPONSE_STREAMING will be inferred.
@@ -60,22 +59,19 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
             .to(Array)
             .map { array =>
               array.map { chunk =>
-                val bytes = chunk.toArraySlice
+                val bytes = chunk.toBytes
                 HttpData.wrap(bytes.values, bytes.offset, bytes.length)
               }
             }
             .map(data => HttpRequest.of(requestHeaders, data: _*))
         Resource.eval(request)
       } else {
-        req.body.chunks
-          .map { chunk =>
-            val bytes = chunk.toArraySlice
-            HttpData.copyOf(bytes.values, bytes.offset, bytes.length)
-          }
-          .toUnicastPublisher
-          .map { body =>
-            HttpRequest.of(requestHeaders, body)
-          }
+        val body = req.body.chunks.map { chunk =>
+          val bytes = chunk.toBytes
+          HttpData.copyOf(bytes.values, bytes.offset, bytes.length)
+        }.toUnicastPublisher
+
+        Resource.pure[F, HttpRequest](HttpRequest.of(requestHeaders, body))
       }
     }
   }
@@ -98,7 +94,7 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
       body =
         splitResponse
           .body()
-          .toStreamBuffered[F](1)
+          .toStream[F]
           .flatMap(x => Stream.chunk(Chunk.array(x.array())))
     } yield Response(status = status, headers = toHeaders(headers), body = body)
   }
@@ -106,7 +102,7 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
   /** Converts [[java.util.concurrent.CompletableFuture]] to `F[_]` */
   private def fromCompletableFuture(
       completableFuture: CompletableFuture[ResponseHeaders]): F[ResponseHeaders] =
-    F.async_[ResponseHeaders] { cb =>
+    F.async[ResponseHeaders] { cb =>
       val _ = completableFuture.handle { (result, ex) =>
         if (ex != null)
           cb(Left(ex))
@@ -126,6 +122,6 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
 }
 
 object ArmeriaClient {
-  def apply[F[_]](client: WebClient = WebClient.of())(implicit F: Async[F]): Client[F] =
+  def apply[F[_]](client: WebClient = WebClient.of())(implicit F: ConcurrentEffect[F]): Client[F] =
     Client(new ArmeriaClient(client).run)
 }

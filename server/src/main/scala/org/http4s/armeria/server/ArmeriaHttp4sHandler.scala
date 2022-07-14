@@ -18,8 +18,7 @@ package org.http4s
 package armeria
 package server
 
-import cats.effect.{Async, IO}
-import cats.effect.unsafe.implicits.global
+import cats.effect.{ConcurrentEffect, IO}
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
@@ -39,11 +38,10 @@ import com.linecorp.armeria.server.{HttpService, ServiceRequestContext}
 import org.typelevel.vault.{Key => VaultKey, Vault}
 import fs2._
 import fs2.interop.reactivestreams._
-import java.net.InetSocketAddress
 
+import java.net.InetSocketAddress
 import org.http4s.internal.CollectionCompat.CollectionConverters._
 import ArmeriaHttp4sHandler.{RightUnit, canHasBody, defaultVault, toHttp4sMethod}
-import cats.effect.std.Dispatcher
 import com.comcast.ip4s.SocketAddress
 import org.http4s.server.{
   DefaultServiceErrorHandler,
@@ -58,9 +56,8 @@ import scodec.bits.ByteVector
 private[armeria] class ArmeriaHttp4sHandler[F[_]](
     prefix: String,
     service: HttpApp[F],
-    serviceErrorHandler: ServiceErrorHandler[F],
-    dispatcher: Dispatcher[F]
-)(implicit F: Async[F])
+    serviceErrorHandler: ServiceErrorHandler[F]
+)(implicit F: ConcurrentEffect[F])
     extends HttpService {
 
   val prefixLength: Int = Uri.Path.unsafeFromString(prefix).segments.size
@@ -69,13 +66,15 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 
   override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
     val responseWriter = HttpResponse.streaming()
-    dispatcher.unsafeRunAndForget(
+    F.runAsync(
       toRequest(ctx, req)
-        .fold(onParseFailure(_, responseWriter), handleRequest(_, responseWriter))
-        .handleError { ex =>
-          discardReturn(responseWriter.close(ex))
-        }
-    )
+        .fold(onParseFailure(_, responseWriter), handleRequest(_, responseWriter))) {
+      case Right(_) =>
+        IO.unit
+      case Left(ex) =>
+        discardReturn(responseWriter.close(ex))
+        IO.unit
+    }.unsafeRunSync()
     responseWriter
   }
 
@@ -102,7 +101,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       response.body.chunks.compile.toVector
         .flatMap { vector =>
           vector.foreach { chunk =>
-            val bytes = chunk.toArraySlice
+            val bytes = chunk.toBytes
             writer.write(HttpData.wrap(bytes.values, bytes.offset, bytes.length))
           }
           maybeWriteTrailersAndClose(writer, response)
@@ -128,12 +127,12 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       body: Stream[F, Byte]): Pull[F, Nothing, Unit] =
     body.pull.uncons.flatMap {
       case Some((head, tail)) =>
-        val bytes = head.toArraySlice
+        val bytes = head.toBytes
         writer.write(HttpData.wrap(bytes.values, bytes.offset, bytes.length))
         if (tail == Stream.empty)
           Pull.done
         else
-          Pull.eval(F.async_[Unit] { cb =>
+          Pull.eval(F.async[Unit] { cb =>
             discardReturn(writer.whenConsumed().thenRun(() => cb(RightUnit)))
           }) >> writeOnDemand(writer, tail)
       case None =>
@@ -185,7 +184,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
   private def toBody(req: HttpRequest): EntityBody[F] =
     if (canHasBody(req.method()))
       req
-        .toStreamBuffered[F](1)
+        .toStream[F]
         .flatMap { obj =>
           val data = obj.asInstanceOf[HttpData]
           Stream.chunk(Chunk.array(data.array()))
@@ -233,11 +232,8 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 }
 
 private[armeria] object ArmeriaHttp4sHandler {
-  def apply[F[_]: Async](
-      prefix: String,
-      service: HttpApp[F],
-      dispatcher: Dispatcher[F]): ArmeriaHttp4sHandler[F] =
-    new ArmeriaHttp4sHandler(prefix, service, DefaultServiceErrorHandler, dispatcher)
+  def apply[F[_]: ConcurrentEffect](prefix: String, service: HttpApp[F]): ArmeriaHttp4sHandler[F] =
+    new ArmeriaHttp4sHandler(prefix, service, DefaultServiceErrorHandler)
 
   private val serverSoftware: ServerSoftware =
     ServerSoftware("armeria", Some(Version.get("armeria").artifactVersion()))

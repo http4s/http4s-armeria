@@ -74,7 +74,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
         new HttpService {
           override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
             val body: IO[Option[String]] = req
-              .toStreamBuffered[IO](1)
+              .toStream[IO]
               .collect { case data: HttpData => data.toStringUtf8 }
               .reduce(_ + " " + _)
               .compile
@@ -100,7 +100,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
             val writer = HttpResponse.streaming()
             writer.write(ResponseHeaders.of(HttpStatus.OK))
             req
-              .toStreamBuffered[IO](1)
+              .toStream[IO]
               .collect { case data: HttpData =>
                 writer.write(HttpData.ofUtf8(s"${data.toStringUtf8}!"))
               }
@@ -179,7 +179,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
       .range(1, 6)
       .covary[IO]
       .map(_.toString)
-      .through(text.utf8.encode)
+      .through(text.utf8Encode)
 
     val req = Request(method = Method.POST, uri = uri"/client-streaming", body = body)
     val response = client.expect[String](IO(req)).unsafeRunSync()
@@ -193,7 +193,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
       .range(1, 6)
       .covary[IO]
       .map(_.toString)
-      .through(text.utf8.encode)
+      .through(text.utf8Encode)
 
     val req = Request(method = Method.POST, uri = uri"/bidi-streaming", body = body)
     val response = client
@@ -203,6 +203,6 @@ class ArmeriaClientSuite extends CatsEffectSuite {
       .toList
       .unsafeRunSync()
       .reduce(_ + " " + _)
-    assertEquals(response, "1! 2! 3! 4! 5!")
+    assertEquals(response, "1! 2! 3! 4! 5! ")
   }
 }
