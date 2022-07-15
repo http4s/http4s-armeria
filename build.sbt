@@ -1,3 +1,4 @@
+import com.typesafe.tools.mima.core.{IncompatibleResultTypeProblem, ProblemFilters}
 import sbt.Keys.{libraryDependencies, sourceManaged}
 import sbtprotoc.ProtocPlugin.autoImport.PB
 
@@ -53,7 +54,11 @@ lazy val server = project
       "org.http4s" %% "http4s-server" % versions.http4s,
       "ch.qos.logback" % "logback-classic" % versions.logback % Test,
       "org.http4s" %% "http4s-dsl" % versions.http4s % Test
-    ) ++ munit
+    ) ++ munit,
+    mimaBinaryIssueFilters ++= Seq(
+      ProblemFilters.exclude[IncompatibleResultTypeProblem]("org.http4s.armeria.server.ServiceRequestContexts.Key"),
+      ProblemFilters.exclude[IncompatibleResultTypeProblem]("org.http4s.armeria.server.ServiceRequestContexts.Key")
+    )
   )
 
 lazy val client = project
