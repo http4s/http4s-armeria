@@ -56,8 +56,10 @@ lazy val server = project
       "org.http4s" %% "http4s-dsl" % versions.http4s % Test
     ) ++ munit,
     mimaBinaryIssueFilters ++= Seq(
-      ProblemFilters.exclude[IncompatibleResultTypeProblem]("org.http4s.armeria.server.ServiceRequestContexts.Key"),
-      ProblemFilters.exclude[IncompatibleResultTypeProblem]("org.http4s.armeria.server.ServiceRequestContexts.Key")
+      ProblemFilters.exclude[IncompatibleResultTypeProblem](
+        "org.http4s.armeria.server.ServiceRequestContexts.Key"),
+      ProblemFilters.exclude[IncompatibleResultTypeProblem](
+        "org.http4s.armeria.server.ServiceRequestContexts.Key")
     )
   )
 
