@@ -25,7 +25,7 @@ import org.http4s.armeria.server.ServiceRequestContexts
 import org.http4s.dsl.Http4sDsl
 import scala.concurrent.duration._
 
-class ExampleService[F[_]](implicit F: Async[F]) extends Http4sDsl[F] {
+class ExampleService[F[_]](implicit F: ConcurrentEffect[F], t: Timer[F]) extends Http4sDsl[F] {
 
   def routes(): HttpRoutes[F] =
     HttpRoutes.of[F] {
@@ -60,5 +60,5 @@ class ExampleService[F[_]](implicit F: Async[F]) extends Http4sDsl[F] {
 }
 
 object ExampleService {
-  def apply[F[_]: Async] = new ExampleService[F]
+  def apply[F[_]: ConcurrentEffect: Timer] = new ExampleService[F]
 }

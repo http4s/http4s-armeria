@@ -18,7 +18,7 @@ package org.http4s
 package armeria
 package client
 
-import cats.effect.{Async, Resource}
+import cats.effect.{ConcurrentEffect, Resource}
 import com.linecorp.armeria.client.{
   ClientFactory,
   ClientOptionValue,
@@ -29,16 +29,16 @@ import com.linecorp.armeria.client.{
   WebClientBuilder
 }
 import com.linecorp.armeria.common.{HttpRequest, HttpResponse}
+
 import java.net.URI
 import java.util.function.{Function => JFunction}
-
 import org.http4s.client.Client
 import org.http4s.internal.BackendBuilder
 
 import scala.concurrent.duration.FiniteDuration
 
 sealed class ArmeriaClientBuilder[F[_]] private (clientBuilder: WebClientBuilder)(implicit
-    protected val F: Async[F])
+    protected val F: ConcurrentEffect[F])
     extends BackendBuilder[F, Client[F]] {
 
   type DecoratingFunction = (HttpClient, ClientRequestContext, HttpRequest) => HttpResponse
@@ -133,7 +133,7 @@ sealed class ArmeriaClientBuilder[F[_]] private (clientBuilder: WebClientBuilder
   /** Returns a newly-created http4s [[org.http4s.client.Client]] based on Armeria
     * [[com.linecorp.armeria.client.WebClient]].
     */
-  def build(): Client[F] = ArmeriaClient(clientBuilder.build())
+  def build(): Client[F] = ArmeriaClient[F](clientBuilder.build())
 
   override def resource: Resource[F, Client[F]] =
     Resource.pure(build())
@@ -146,7 +146,7 @@ object ArmeriaClientBuilder {
 
   /** Returns a new [[ArmeriaClientBuilder]]. */
   def apply[F[_]](clientBuilder: WebClientBuilder = WebClient.builder())(implicit
-      F: Async[F]): ArmeriaClientBuilder[F] =
+      F: ConcurrentEffect[F]): ArmeriaClientBuilder[F] =
     new ArmeriaClientBuilder(clientBuilder)
 
   /** Returns a new [[ArmeriaClientBuilder]] created with the specified base [[java.net.URI]].
@@ -158,7 +158,7 @@ object ArmeriaClientBuilder {
     *   `Right(ArmeriaClientBuilder)`.
     */
   def apply[F[_]](uri: String)(implicit
-      F: Async[F]): Either[IllegalArgumentException, ArmeriaClientBuilder[F]] =
+      F: ConcurrentEffect[F]): Either[IllegalArgumentException, ArmeriaClientBuilder[F]] =
     try Right(unsafe(uri))
     catch {
       case ex: IllegalArgumentException => Left(ex)
@@ -171,7 +171,7 @@ object ArmeriaClientBuilder {
     *   `com.linecorp.armeria.common.SessionProtocol.httpValues()` or
     *   `com.linecorp.armeria.common.SessionProtocol.httpsValues()`.
     */
-  def unsafe[F[_]](uri: String)(implicit F: Async[F]): ArmeriaClientBuilder[F] =
+  def unsafe[F[_]](uri: String)(implicit F: ConcurrentEffect[F]): ArmeriaClientBuilder[F] =
     apply(WebClient.builder(uri))
 
   /** Returns a new [[ArmeriaClientBuilder]] created with the specified base [[java.net.URI]].
@@ -183,7 +183,7 @@ object ArmeriaClientBuilder {
     *   `Right(ArmeriaClientBuilder)`.
     */
   def apply[F[_]](uri: URI)(implicit
-      F: Async[F]): Either[IllegalArgumentException, ArmeriaClientBuilder[F]] =
+      F: ConcurrentEffect[F]): Either[IllegalArgumentException, ArmeriaClientBuilder[F]] =
     try Right(apply(WebClient.builder(uri)))
     catch {
       case ex: IllegalArgumentException => Left(ex)
@@ -196,6 +196,6 @@ object ArmeriaClientBuilder {
     *   `com.linecorp.armeria.common.SessionProtocol.httpValues()` or
     *   `com.linecorp.armeria.common.SessionProtocol.httpsValues()`.
     */
-  def unsafe[F[_]](uri: URI)(implicit F: Async[F]): ArmeriaClientBuilder[F] =
+  def unsafe[F[_]](uri: URI)(implicit F: ConcurrentEffect[F]): ArmeriaClientBuilder[F] =
     apply(WebClient.builder(uri))
 }

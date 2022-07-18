@@ -18,8 +18,8 @@ package org.http4s.armeria.server
 
 import java.net.{HttpURLConnection, URL}
 import java.nio.charset.StandardCharsets
-
-import cats.effect.{Deferred, IO}
+import cats.effect.IO
+import cats.effect.concurrent.Deferred
 import cats.implicits._
 import com.linecorp.armeria.client.logging.LoggingClient
 import com.linecorp.armeria.client.{ClientFactory, WebClient}
