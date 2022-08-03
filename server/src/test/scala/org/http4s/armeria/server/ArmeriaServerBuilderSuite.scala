@@ -63,7 +63,7 @@ class ArmeriaServerBuilderSuite extends CatsEffectSuite with ServerFixture {
       Ok(Stream.range(1, 10).map(_.toString).covary[IO])
 
     case req @ POST -> Root / "issue2610" =>
-      req.decode[Multipart[IO]] { mp =>
+      req.decode[IO, Multipart[IO]] { mp =>
         Ok(mp.parts.foldMap(_.body))
       }
 

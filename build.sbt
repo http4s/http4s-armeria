@@ -1,7 +1,7 @@
 import sbt.Keys.{libraryDependencies, sourceManaged}
 import sbtprotoc.ProtocPlugin.autoImport.PB
 
-ThisBuild / tlBaseVersion := "0.4"
+ThisBuild / tlBaseVersion := "1.0"
 ThisBuild / developers := List(
   Developer(
     "ikhoon",
@@ -10,7 +10,7 @@ ThisBuild / developers := List(
     url("https://github.com/ikhoon")
   )
 )
-ThisBuild / crossScalaVersions := Seq("2.13.8", "2.12.16")
+ThisBuild / crossScalaVersions := Seq("2.13.8")
 ThisBuild / scalaVersion := crossScalaVersions.value.head
 ThisBuild / tlCiReleaseBranches := Seq("main")
 ThisBuild / homepage := Some(url("https://github.com/http4s/http4s-armeria"))
@@ -22,7 +22,7 @@ ThisBuild / Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true 
 val versions = new {
   val armeria = "1.17.2"
   val fs2 = "3.2.11"
-  val http4s = "0.23.14"
+  val http4s = "1.0.0-M35"
   val logback = "1.2.11"
   val micrometer = "1.9.2"
   val munit = "0.7.29"
