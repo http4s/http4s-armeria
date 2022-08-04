@@ -10,7 +10,7 @@ ThisBuild / developers := List(
     url("https://github.com/ikhoon")
   )
 )
-ThisBuild / crossScalaVersions := Seq("2.13.8", "2.12.16")
+ThisBuild / crossScalaVersions := Seq("2.13.8", "2.12.16", "3.1.3")
 ThisBuild / scalaVersion := crossScalaVersions.value.head
 ThisBuild / tlCiReleaseBranches := Seq("main")
 ThisBuild / homepage := Some(url("https://github.com/http4s/http4s-armeria"))
