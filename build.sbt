@@ -12,6 +12,7 @@ ThisBuild / developers := List(
 )
 ThisBuild / crossScalaVersions := Seq("2.13.8", "2.12.16", "3.1.3")
 ThisBuild / scalaVersion := crossScalaVersions.value.head
+ThisBuild / tlVersionIntroduced := Map("3" -> "0.5.0")
 ThisBuild / tlCiReleaseBranches := Seq("main")
 ThisBuild / homepage := Some(url("https://github.com/http4s/http4s-armeria"))
 ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
