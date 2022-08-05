@@ -10,8 +10,9 @@ ThisBuild / developers := List(
     url("https://github.com/ikhoon")
   )
 )
-ThisBuild / crossScalaVersions := Seq("2.13.8", "2.12.16")
+ThisBuild / crossScalaVersions := Seq("2.13.8", "2.12.16", "3.1.3")
 ThisBuild / scalaVersion := crossScalaVersions.value.head
+ThisBuild / tlVersionIntroduced := Map("3" -> "0.5.0")
 ThisBuild / tlCiReleaseBranches := Seq("main")
 ThisBuild / homepage := Some(url("https://github.com/http4s/http4s-armeria"))
 ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
@@ -42,7 +43,7 @@ lazy val root = project
     name := "http4s-armeria",
     description := " Armeria backend for http4s"
   )
-  .aggregate(server, client, exampleArmeriaHttp4s, exampleArmeriaScalaPB)
+  .aggregate(server, client)
 
 lazy val server = project
   .settings(
@@ -71,6 +72,8 @@ lazy val exampleArmeriaHttp4s = project
   .in(file("examples/armeria-http4s"))
   .settings(
     name := "examples-armeria-http4s",
+    crossScalaVersions := Seq("2.13.8", "2.12.16"),
+    scalaVersion := crossScalaVersions.value.head,
     libraryDependencies ++= List(
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
       "io.micrometer" % "micrometer-registry-prometheus" % versions.micrometer,
@@ -85,6 +88,8 @@ lazy val exampleArmeriaScalaPB = project
   .in(file("examples/armeria-scalapb"))
   .settings(
     name := "examples-armeria-scalapb",
+    crossScalaVersions := Seq("2.13.8", "2.12.16"),
+    scalaVersion := crossScalaVersions.value.head,
     libraryDependencies ++= List(
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
       "com.linecorp.armeria" % "armeria-grpc" % versions.armeria,
@@ -107,6 +112,8 @@ lazy val exampleArmeriaFs2Grpc = project
   .in(file("examples/armeria-fs2grpc"))
   .settings(
     name := "examples-armeria-fs2grpc",
+    crossScalaVersions := Seq("2.13.8", "2.12.16"),
+    scalaVersion := crossScalaVersions.value.head,
     libraryDependencies ++= List(
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
       "com.linecorp.armeria" % "armeria-grpc" % versions.armeria,
