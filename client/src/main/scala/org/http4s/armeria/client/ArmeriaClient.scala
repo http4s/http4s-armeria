@@ -104,6 +104,7 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
     for {
       headers <- fromCompletableFuture(splitResponse.headers)
       status <- F.fromEither(Status.fromInt(headers.status().code()))
+      contentLength <- F.delay(headers.contentLength())
       body =
         splitResponse
           .body()
@@ -112,7 +113,7 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
     } yield Response(
       status = status,
       headers = toHeaders(headers),
-      entity = Entity.Default(body, None))
+      entity = Entity.Default(body = body, length = Option.when(contentLength > 0)(contentLength)))
   }
 
   /** Converts [[java.util.concurrent.CompletableFuture]] to `F[_]` */
