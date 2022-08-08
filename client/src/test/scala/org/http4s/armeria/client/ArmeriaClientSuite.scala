@@ -35,8 +35,8 @@ import fs2._
 import fs2.interop.reactivestreams._
 import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue}
 import munit.CatsEffectSuite
+import org.http4s.syntax.all._
 import org.http4s.client.Client
-import org.http4s.implicits.http4sLiteralsSyntax
 import org.slf4j.{Logger, LoggerFactory}
 import scala.concurrent.duration._
 
