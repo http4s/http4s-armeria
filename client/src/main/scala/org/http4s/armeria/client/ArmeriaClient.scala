@@ -32,12 +32,13 @@ import com.linecorp.armeria.common.{
 }
 import fs2.interop.reactivestreams._
 import fs2.{Chunk, Stream}
-import java.util.concurrent.CompletableFuture
 
+import java.util.concurrent.CompletableFuture
 import cats.effect.kernel.{Async, MonadCancel}
 import org.http4s.client.Client
-import org.http4s.internal.CollectionCompat.CollectionConverters._
 import org.typelevel.ci.CIString
+
+import scala.jdk.CollectionConverters._
 
 private[armeria] final class ArmeriaClient[F[_]] private[client] (
     private val client: WebClient
@@ -50,33 +51,41 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
   private def toHttpRequest(req: Request[F]): Resource[F, HttpRequest] = {
     val requestHeaders = toRequestHeaders(req)
 
-    if (req.body == EmptyBody)
-      Resource.pure(HttpRequest.of(requestHeaders))
-    else {
-      if (req.contentLength.isDefined) {
-        // A non stream response. ExchangeType.RESPONSE_STREAMING will be inferred.
-        val request: F[HttpRequest] =
-          req.body.chunks.compile
-            .to(Array)
-            .map { array =>
-              array.map { chunk =>
-                val bytes = chunk.toArraySlice
-                HttpData.wrap(bytes.values, bytes.offset, bytes.length)
+    req.entity match {
+      case Entity.Empty =>
+        Resource.pure(HttpRequest.of(requestHeaders))
+
+      case Entity.Strict(chunk) =>
+        val bytes = chunk.toArraySlice
+        Resource.pure(
+          HttpRequest.of(requestHeaders, HttpData.wrap(bytes.values, bytes.offset, bytes.length))
+        )
+
+      case Entity.Default(body, length) =>
+        if (length.nonEmpty || req.contentLength.isDefined) {
+          // A non stream response. ExchangeType.RESPONSE_STREAMING will be inferred.
+          val request: F[HttpRequest] =
+            body.chunks.compile
+              .to(Array)
+              .map { array =>
+                array.map { chunk =>
+                  val bytes = chunk.toArraySlice
+                  HttpData.wrap(bytes.values, bytes.offset, bytes.length)
+                }
               }
+              .map(data => HttpRequest.of(requestHeaders, data: _*))
+          Resource.eval(request)
+        } else {
+          body.chunks
+            .map { chunk =>
+              val bytes = chunk.toArraySlice
+              HttpData.copyOf(bytes.values, bytes.offset, bytes.length)
             }
-            .map(data => HttpRequest.of(requestHeaders, data: _*))
-        Resource.eval(request)
-      } else {
-        req.body.chunks
-          .map { chunk =>
-            val bytes = chunk.toArraySlice
-            HttpData.copyOf(bytes.values, bytes.offset, bytes.length)
-          }
-          .toUnicastPublisher
-          .map { body =>
-            HttpRequest.of(requestHeaders, body)
-          }
-      }
+            .toUnicastPublisher
+            .map { body =>
+              HttpRequest.of(requestHeaders, body)
+            }
+        }
     }
   }
 
@@ -95,12 +104,16 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
     for {
       headers <- fromCompletableFuture(splitResponse.headers)
       status <- F.fromEither(Status.fromInt(headers.status().code()))
+      contentLength <- F.delay(headers.contentLength())
       body =
         splitResponse
           .body()
           .toStreamBuffered[F](1)
           .flatMap(x => Stream.chunk(Chunk.array(x.array())))
-    } yield Response(status = status, headers = toHeaders(headers), body = body)
+    } yield Response(
+      status = status,
+      headers = toHeaders(headers),
+      entity = Entity.Default(body = body, length = Option.when(contentLength > 0)(contentLength)))
   }
 
   /** Converts [[java.util.concurrent.CompletableFuture]] to `F[_]` */

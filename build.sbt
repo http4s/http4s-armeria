@@ -1,7 +1,7 @@
 import sbt.Keys.{libraryDependencies, sourceManaged}
 import sbtprotoc.ProtocPlugin.autoImport.PB
 
-ThisBuild / tlBaseVersion := "0.4"
+ThisBuild / tlBaseVersion := "1.0"
 ThisBuild / developers := List(
   Developer(
     "ikhoon",
@@ -10,9 +10,10 @@ ThisBuild / developers := List(
     url("https://github.com/ikhoon")
   )
 )
-ThisBuild / crossScalaVersions := Seq("2.13.8", "2.12.16")
+ThisBuild / crossScalaVersions := Seq("2.13.8", "3.1.3")
 ThisBuild / scalaVersion := crossScalaVersions.value.head
-ThisBuild / tlCiReleaseBranches := Seq("main")
+ThisBuild / tlCiReleaseBranches := Seq("series/1.x")
+ThisBuild / tlVersionIntroduced := Map("3" -> "0.5.0")
 ThisBuild / homepage := Some(url("https://github.com/http4s/http4s-armeria"))
 ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
 ThisBuild / startYear := Some(2020)
@@ -20,9 +21,9 @@ ThisBuild / resolvers += Resolver.mavenLocal
 ThisBuild / Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true -Dcom.linecorp.armeria.verboseExceptions=always"
 
 val versions = new {
-  val armeria = "1.17.2"
+  val armeria = "1.18.0"
   val fs2 = "3.2.11"
-  val http4s = "0.23.14"
+  val http4s = "1.0.0-M35"
   val logback = "1.2.11"
   val micrometer = "1.9.2"
   val munit = "0.7.29"
@@ -42,7 +43,7 @@ lazy val root = project
     name := "http4s-armeria",
     description := " Armeria backend for http4s"
   )
-  .aggregate(server, client, exampleArmeriaHttp4s, exampleArmeriaScalaPB)
+  .aggregate(server, client)
 
 lazy val server = project
   .settings(
@@ -71,6 +72,8 @@ lazy val exampleArmeriaHttp4s = project
   .in(file("examples/armeria-http4s"))
   .settings(
     name := "examples-armeria-http4s",
+    crossScalaVersions := Seq("2.13.8"),
+    scalaVersion := crossScalaVersions.value.head,
     libraryDependencies ++= List(
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
       "io.micrometer" % "micrometer-registry-prometheus" % versions.micrometer,
@@ -85,6 +88,8 @@ lazy val exampleArmeriaScalaPB = project
   .in(file("examples/armeria-scalapb"))
   .settings(
     name := "examples-armeria-scalapb",
+    crossScalaVersions := Seq("2.13.8"),
+    scalaVersion := crossScalaVersions.value.head,
     libraryDependencies ++= List(
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
       "com.linecorp.armeria" % "armeria-grpc" % versions.armeria,
@@ -107,6 +112,8 @@ lazy val exampleArmeriaFs2Grpc = project
   .in(file("examples/armeria-fs2grpc"))
   .settings(
     name := "examples-armeria-fs2grpc",
+    crossScalaVersions := Seq("2.13.8"),
+    scalaVersion := crossScalaVersions.value.head,
     libraryDependencies ++= List(
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
       "com.linecorp.armeria" % "armeria-grpc" % versions.armeria,

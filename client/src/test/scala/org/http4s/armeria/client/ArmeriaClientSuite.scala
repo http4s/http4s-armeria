@@ -35,8 +35,8 @@ import fs2._
 import fs2.interop.reactivestreams._
 import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue}
 import munit.CatsEffectSuite
+import org.http4s.syntax.all._
 import org.http4s.client.Client
-import org.http4s.implicits.http4sLiteralsSyntax
 import org.slf4j.{Logger, LoggerFactory}
 import scala.concurrent.duration._
 
@@ -158,7 +158,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
   test("post") {
     val (_, client) = fixture()
     val body = Stream.emits("Armeria".getBytes).covary[IO]
-    val req = Request(method = Method.POST, uri = uri"/post", body = body)
+    val req = Request(method = Method.POST, uri = uri"/post", entity = Entity.Default(body, None))
     val response = client.expect[String](IO(req)).unsafeRunSync()
     assertEquals(response, "Hello, Armeria!")
   }
@@ -181,7 +181,10 @@ class ArmeriaClientSuite extends CatsEffectSuite {
       .map(_.toString)
       .through(text.utf8.encode)
 
-    val req = Request(method = Method.POST, uri = uri"/client-streaming", body = body)
+    val req = Request(
+      method = Method.POST,
+      uri = uri"/client-streaming",
+      entity = Entity.Default(body, None))
     val response = client.expect[String](IO(req)).unsafeRunSync()
     assertEquals(response, "1 2 3 4 5")
   }
@@ -195,7 +198,8 @@ class ArmeriaClientSuite extends CatsEffectSuite {
       .map(_.toString)
       .through(text.utf8.encode)
 
-    val req = Request(method = Method.POST, uri = uri"/bidi-streaming", body = body)
+    val req =
+      Request(method = Method.POST, uri = uri"/bidi-streaming", entity = Entity.Default(body, None))
     val response = client
       .stream(req)
       .flatMap(res => res.bodyText)

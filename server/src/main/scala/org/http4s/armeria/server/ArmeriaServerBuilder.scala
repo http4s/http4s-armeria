@@ -33,13 +33,15 @@ import com.linecorp.armeria.server.{
 import io.micrometer.core.instrument.MeterRegistry
 import io.netty.channel.ChannelOption
 import io.netty.handler.ssl.SslContextBuilder
+
 import java.io.{File, InputStream}
 import java.net.InetSocketAddress
 import java.security.PrivateKey
 import java.security.cert.X509Certificate
 import java.util.function.{Function => JFunction}
-
 import cats.effect.std.Dispatcher
+import com.comcast.ip4s
+
 import javax.net.ssl.KeyManagerFactory
 import org.http4s.armeria.server.ArmeriaServerBuilder.AddServices
 import org.http4s.{BuildInfo, HttpApp, HttpRoutes}
@@ -86,33 +88,41 @@ sealed class ArmeriaServerBuilder[F[_]] private (
             .gracefulShutdownTimeoutMillis(ShutdownTimeout.toMillis, ShutdownTimeout.toMillis)
         }
         builderWithServices <- addServices(defaultServerBuilder, dispatcher)
-        res <- F.delay {
-          val armeriaServer0 = builderWithServices.http(socketAddress).build()
+        res <- F
+          .delay {
+            val armeriaServer0 = builderWithServices.http(socketAddress).build()
 
-          armeriaServer0.addListener(new ServerListenerAdapter {
-            override def serverStarting(server: BackendServer): Unit = {
-              banner.foreach(logger.info(_))
+            armeriaServer0.addListener(new ServerListenerAdapter {
+              override def serverStarting(server: BackendServer): Unit = {
+                banner.foreach(logger.info(_))
 
-              val armeriaVersion = Version.get("armeria").artifactVersion()
+                val armeriaVersion = Version.get("armeria").artifactVersion()
 
-              logger.info(s"http4s v${BuildInfo.version} on Armeria v$armeriaVersion started")
-            }
-          })
-          armeriaServer0.start().join()
-
-          val armeriaServer: ArmeriaServer = new ArmeriaServer {
-            lazy val address: InetSocketAddress = {
-              val host = socketAddress.getHostString
-              val port = server.activeLocalPort()
-              new InetSocketAddress(host, port)
-            }
-
-            lazy val server: BackendServer = armeriaServer0
-            lazy val isSecure: Boolean = server.activePort(SessionProtocol.HTTPS) != null
+                logger.info(s"http4s v${BuildInfo.version} on Armeria v$armeriaVersion started")
+              }
+            })
+            armeriaServer0.start().join()
+            armeriaServer0
           }
+          .flatMap { armeriaServer0 =>
+            val hostOpt = ip4s.IpAddress.fromString(socketAddress.getHostString)
+            val portOpt = ip4s.Port.fromInt(armeriaServer0.activeLocalPort())
+            F.fromOption(
+              hostOpt.zip(portOpt),
+              new IllegalStateException(
+                s"Can't parse host [${socketAddress.getHostString}] or port [${armeriaServer0.activeLocalPort()}] on http4s server startup")
+            ).map { case (host, port) =>
+              val armeriaServer: ArmeriaServer = new ArmeriaServer {
+                lazy val address: ip4s.SocketAddress[ip4s.IpAddress] =
+                  ip4s.SocketAddress(host, port)
 
-          armeriaServer -> shutdown(armeriaServer.server)
-        }
+                lazy val server: BackendServer = armeriaServer0
+                lazy val isSecure: Boolean = server.activePort(SessionProtocol.HTTPS) != null
+              }
+
+              armeriaServer -> shutdown(armeriaServer.server)
+            }
+          }
       } yield res)
     }
 
@@ -352,7 +362,7 @@ object ArmeriaServerBuilder {
   def apply[F[_]: Async]: ArmeriaServerBuilder[F] =
     new ArmeriaServerBuilder(
       (armeriaBuilder, _) => armeriaBuilder.pure,
-      socketAddress = defaults.IPv4SocketAddress,
+      socketAddress = defaults.IPv4SocketAddress.toInetSocketAddress,
       serviceErrorHandler = DefaultServiceErrorHandler,
       banner = defaults.Banner)
 }

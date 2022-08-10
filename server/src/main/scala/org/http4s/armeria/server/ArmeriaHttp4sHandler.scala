@@ -39,9 +39,8 @@ import com.linecorp.armeria.server.{HttpService, ServiceRequestContext}
 import org.typelevel.vault.{Key => VaultKey, Vault}
 import fs2._
 import fs2.interop.reactivestreams._
-import java.net.InetSocketAddress
 
-import org.http4s.internal.CollectionCompat.CollectionConverters._
+import java.net.InetSocketAddress
 import ArmeriaHttp4sHandler.{RightUnit, canHasBody, defaultVault, toHttp4sMethod}
 import cats.effect.std.Dispatcher
 import com.comcast.ip4s.SocketAddress
@@ -53,6 +52,8 @@ import org.http4s.server.{
 }
 import org.typelevel.ci.CIString
 import scodec.bits.ByteVector
+
+import scala.jdk.CollectionConverters._
 
 /** An [[HttpService]] that handles the specified [[HttpApp]] under the specified `prefix`. */
 private[armeria] class ArmeriaHttp4sHandler[F[_]](
@@ -93,25 +94,34 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
   private def toHttpResponse(response: Response[F], writer: HttpResponseWriter): F[Unit] = {
     val headers = toHttpHeaders(response.headers, response.status.some)
     writer.write(headers)
-    val body = response.body
-    if (body == EmptyBody) {
-      writer.close()
-      F.unit
-    } else if (response.contentLength.isDefined)
-      // non stream response
-      response.body.chunks.compile.toVector
-        .flatMap { vector =>
-          vector.foreach { chunk =>
-            val bytes = chunk.toArraySlice
-            writer.write(HttpData.wrap(bytes.values, bytes.offset, bytes.length))
-          }
-          maybeWriteTrailersAndClose(writer, response)
+
+    response.entity match {
+      case Entity.Empty =>
+        F.delay(writer.close())
+
+      case Entity.Strict(chunk) =>
+        val bytes = chunk.toArraySlice
+        writer.write(HttpData.wrap(bytes.values, bytes.offset, bytes.length))
+        maybeWriteTrailersAndClose(writer, response)
+
+      case Entity.Default(body, length) =>
+        if (length.nonEmpty || response.contentLength.isDefined) {
+          // non stream response
+          body.chunks.compile.toVector
+            .flatMap { vector =>
+              vector.foreach { chunk =>
+                val bytes = chunk.toArraySlice
+                writer.write(HttpData.wrap(bytes.values, bytes.offset, bytes.length))
+              }
+              maybeWriteTrailersAndClose(writer, response)
+            }
+        } else {
+          writeOnDemand(writer, body).stream
+            .onFinalize(maybeWriteTrailersAndClose(writer, response))
+            .compile
+            .drain
         }
-    else
-      writeOnDemand(writer, body).stream
-        .onFinalize(maybeWriteTrailersAndClose(writer, response))
-        .compile
-        .drain
+    }
   }
 
   private def maybeWriteTrailersAndClose(
@@ -157,7 +167,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
         else
           HttpVersion.`HTTP/1.0`,
       headers = toHeaders(req),
-      body = toBody(req),
+      entity = toEntity(req),
       attributes = requestAttributes(ctx)
     )
   }
@@ -181,17 +191,19 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
         .toList
     )
 
-  /** Converts an HTTP payload to [[EntityBody]]. */
-  private def toBody(req: HttpRequest): EntityBody[F] =
-    if (canHasBody(req.method()))
-      req
-        .toStreamBuffered[F](1)
-        .flatMap { obj =>
-          val data = obj.asInstanceOf[HttpData]
-          Stream.chunk(Chunk.array(data.array()))
-        }
-    else
-      EmptyBody
+  /** Converts an HTTP payload to [[Entity]]. */
+  private def toEntity(req: HttpRequest): Entity[F] =
+    if (canHasBody(req.method())) {
+      Entity.Default(
+        req
+          .toStreamBuffered[F](1)
+          .flatMap { obj =>
+            val data = obj.asInstanceOf[HttpData]
+            Stream.chunk(Chunk.array(data.array()))
+          },
+        None)
+    } else
+      Entity.empty
 
   private def requestAttributes(ctx: ServiceRequestContext): Vault = {
     val secure = ctx.sessionProtocol().isTls
