@@ -109,7 +109,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
             val portOpt = ip4s.Port.fromInt(armeriaServer0.activeLocalPort())
             F.fromOption(
               hostOpt.zip(portOpt),
-              new RuntimeException(
+              new IllegalStateException(
                 s"Can't parse host [${socketAddress.getHostString}] or port [${armeriaServer0.activeLocalPort()}] on http4s server startup")
             ).map { case (host, port) =>
               val armeriaServer: ArmeriaServer = new ArmeriaServer {
