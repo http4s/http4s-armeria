@@ -354,5 +354,6 @@ object ArmeriaServerBuilder {
       (armeriaBuilder, _) => armeriaBuilder.pure,
       socketAddress = defaults.IPv4SocketAddress,
       serviceErrorHandler = DefaultServiceErrorHandler,
-      banner = defaults.Banner)
+      banner = defaults.Banner
+    )
 }
