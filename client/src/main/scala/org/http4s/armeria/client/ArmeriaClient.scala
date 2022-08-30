@@ -55,10 +55,10 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
       case Entity.Empty =>
         Resource.pure(HttpRequest.of(requestHeaders))
 
-      case Entity.Strict(chunk) =>
-        val bytes = chunk.toArraySlice
+      case Entity.Strict(bv) =>
+        val bytes = bv.toArray
         Resource.pure(
-          HttpRequest.of(requestHeaders, HttpData.wrap(bytes.values, bytes.offset, bytes.length))
+          HttpRequest.of(requestHeaders, HttpData.wrap(bytes, 0, bytes.length))
         )
 
       case Entity.Default(body, length) =>
