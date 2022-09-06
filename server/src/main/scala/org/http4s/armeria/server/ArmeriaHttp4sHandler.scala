@@ -99,9 +99,9 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       case Entity.Empty =>
         F.delay(writer.close())
 
-      case Entity.Strict(chunk) =>
-        val bytes = chunk.toArraySlice
-        writer.write(HttpData.wrap(bytes.values, bytes.offset, bytes.length))
+      case Entity.Strict(bv) =>
+        val bytes = bv.toArray
+        writer.write(HttpData.wrap(bytes, 0, bytes.length))
         maybeWriteTrailersAndClose(writer, response)
 
       case Entity.Default(body, length) =>
