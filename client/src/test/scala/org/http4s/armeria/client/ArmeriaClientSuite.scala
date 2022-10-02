@@ -159,14 +159,14 @@ class ArmeriaClientSuite extends CatsEffectSuite {
     val (_, client) = fixture()
     val body = Stream.emits("Armeria".getBytes).covary[IO]
     val req = Request(method = Method.POST, uri = uri"/post", entity = Entity.Default(body, None))
-    val response = client.expect[String](IO(req)).unsafeRunSync()
+    val response = client.expect[String](req).unsafeRunSync()
     assertEquals(response, "Hello, Armeria!")
   }
 
   test("ExchangeType - disable request-streaming") {
     val (_, client) = fixture()
     val req = Request[IO](method = Method.POST, uri = uri"/post").withEntity("Armeria")
-    val response = client.expect[String](IO(req)).unsafeRunSync()
+    val response = client.expect[String](req).unsafeRunSync()
     assertEquals(response, "Hello, Armeria!")
     val exchangeType = clientContexts.take().exchangeType()
     assertEquals(exchangeType, ExchangeType.RESPONSE_STREAMING)
@@ -185,7 +185,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
       method = Method.POST,
       uri = uri"/client-streaming",
       entity = Entity.Default(body, None))
-    val response = client.expect[String](IO(req)).unsafeRunSync()
+    val response = client.expect[String](req).unsafeRunSync()
     assertEquals(response, "1 2 3 4 5")
   }
 
