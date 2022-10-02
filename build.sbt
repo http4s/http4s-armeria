@@ -10,7 +10,7 @@ ThisBuild / developers := List(
     url("https://github.com/ikhoon")
   )
 )
-ThisBuild / crossScalaVersions := Seq("2.13.8", "3.1.3")
+ThisBuild / crossScalaVersions := Seq("2.13.9", "3.1.3")
 ThisBuild / scalaVersion := crossScalaVersions.value.head
 ThisBuild / tlCiReleaseBranches := Seq("series/1.x")
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.5.0")
@@ -23,7 +23,7 @@ ThisBuild / Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true 
 val versions = new {
   val armeria = "1.19.0"
   val fs2 = "3.3.0"
-  val http4s = "1.0.0-M36"
+  val http4s = "1.0.0-M37"
   val logback = "1.2.11"
   val micrometer = "1.9.2"
   val munit = "0.7.29"
@@ -72,7 +72,7 @@ lazy val exampleArmeriaHttp4s = project
   .in(file("examples/armeria-http4s"))
   .settings(
     name := "examples-armeria-http4s",
-    crossScalaVersions := Seq("2.13.8"),
+    crossScalaVersions := Seq("2.13.9"),
     scalaVersion := crossScalaVersions.value.head,
     libraryDependencies ++= List(
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
@@ -88,7 +88,7 @@ lazy val exampleArmeriaScalaPB = project
   .in(file("examples/armeria-scalapb"))
   .settings(
     name := "examples-armeria-scalapb",
-    crossScalaVersions := Seq("2.13.8"),
+    crossScalaVersions := Seq("2.13.9"),
     scalaVersion := crossScalaVersions.value.head,
     libraryDependencies ++= List(
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
@@ -112,7 +112,7 @@ lazy val exampleArmeriaFs2Grpc = project
   .in(file("examples/armeria-fs2grpc"))
   .settings(
     name := "examples-armeria-fs2grpc",
-    crossScalaVersions := Seq("2.13.8"),
+    crossScalaVersions := Seq("2.13.9"),
     scalaVersion := crossScalaVersions.value.head,
     libraryDependencies ++= List(
       "ch.qos.logback" % "logback-classic" % versions.logback % Runtime,
