@@ -23,7 +23,6 @@ import com.linecorp.armeria.server.Server
 import java.net.URI
 import munit.{CatsEffectFunFixtures, CatsEffectSuite}
 
-import scala.annotation.nowarn
 import scala.concurrent.duration._
 import scala.util.Try
 
@@ -33,9 +32,9 @@ import scala.util.Try
 trait ServerFixture extends CatsEffectFunFixtures {
   this: CatsEffectSuite =>
 
-  @nowarn private var armeriaServerWrapper: ArmeriaServer = _
-  @nowarn private var server: Server = _
-  @nowarn private var releaseToken: IO[Unit] = _
+  private var armeriaServerWrapper: ArmeriaServer = _
+  private var server: Server = _
+  private var releaseToken: IO[Unit] = _
 
   /** Configures the [[Server]] with the given [[ArmeriaServerBuilder]]. */
   protected def configureServer(customizer: ArmeriaServerBuilder[IO]): ArmeriaServerBuilder[IO]
