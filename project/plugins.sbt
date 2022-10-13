@@ -1,5 +1,5 @@
 // http4s organization
-addSbtPlugin("org.http4s" % "sbt-http4s-org" % "0.14.6")
+addSbtPlugin("org.http4s" % "sbt-http4s-org" % "0.14.7")
 
 // ScalaDoc API mapping
 addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "3.0.2")
