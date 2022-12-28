@@ -76,7 +76,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     copy(serviceErrorHandler = serviceErrorHandler)
 
   override def resource: Resource[F, ArmeriaServer] =
-    Dispatcher[F].flatMap { dispatcher =>
+    Dispatcher.parallel[F].flatMap { dispatcher =>
       Resource(for {
         defaultServerBuilder <- F.delay {
           BackendServer
