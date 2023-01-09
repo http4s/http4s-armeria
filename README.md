@@ -1,6 +1,6 @@
 # http4s-armeria
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.http4s/http4s-armeria-server_2.13/badge.svg)](https://search.maven.org/search?q=http4s-armeria)
+[![Maven Central](https://img.shields.io/maven-central/v/org.http4s/http4s-armeria-server_2.13?versionPrefix=0.)](https://img.shields.io/maven-central/v/org.http4s/http4s-armeria-server_2.13?versionPrefix=0.)
 [![Build Status](https://github.com/http4s/http4s-armeria/workflows/Build%20Pull%20Requests/badge.svg?branch=main)](https://github.com/http4s/http4s-armeria/actions?query=workflow%3A"Build+c+Requests")
 
 
