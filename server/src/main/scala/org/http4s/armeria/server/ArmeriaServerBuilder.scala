@@ -313,6 +313,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
   def withMeterRegistry(meterRegistry: MeterRegistry): Self =
     atBuild(_.meterRegistry(meterRegistry))
 
+  // Note this effect became uncancelable since Cats-Effect 3.5.0
   private def shutdown(armeriaServer: BackendServer): F[Unit] =
     F.async_[Unit] { cb =>
       val _ = armeriaServer
