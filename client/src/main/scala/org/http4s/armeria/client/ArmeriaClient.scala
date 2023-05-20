@@ -27,13 +27,10 @@ import com.linecorp.armeria.common.{
   HttpMethod,
   HttpRequest,
   HttpResponse,
-  RequestHeaders,
-  ResponseHeaders
+  RequestHeaders
 }
 import fs2.interop.reactivestreams._
 import fs2.{Chunk, Stream}
-import java.util.concurrent.CompletableFuture
-
 import cats.effect.kernel.{Async, MonadCancel}
 import org.http4s.client.Client
 import org.http4s.internal.CollectionCompat.CollectionConverters._
@@ -93,7 +90,7 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
   private def toResponse(response: HttpResponse): F[Response[F]] = {
     val splitResponse = response.split()
     for {
-      headers <- fromCompletableFuture(splitResponse.headers)
+      headers <- F.fromCompletableFuture(F.delay(splitResponse.headers))
       status <- F.fromEither(Status.fromInt(headers.status().code()))
       body =
         splitResponse
@@ -102,19 +99,6 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
           .flatMap(x => Stream.chunk(Chunk.array(x.array())))
     } yield Response(status = status, headers = toHeaders(headers), body = body)
   }
-
-  /** Converts [[java.util.concurrent.CompletableFuture]] to `F[_]` */
-  private def fromCompletableFuture(
-      completableFuture: CompletableFuture[ResponseHeaders]): F[ResponseHeaders] =
-    F.async_[ResponseHeaders] { cb =>
-      val _ = completableFuture.handle { (result, ex) =>
-        if (ex != null)
-          cb(Left(ex))
-        else
-          cb(Right(result))
-        null
-      }
-    }
 
   /** Converts Armeria's [[com.linecorp.armeria.common.HttpHeaders]] to http4s' [[Headers]]. */
   private def toHeaders(req: HttpHeaders): Headers =
