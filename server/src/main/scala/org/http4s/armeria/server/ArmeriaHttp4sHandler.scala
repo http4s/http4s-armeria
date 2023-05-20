@@ -133,8 +133,11 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
         if (tail == Stream.empty)
           Pull.done
         else
-          Pull.eval(F.async_[Unit] { cb =>
-            discardReturn(writer.whenConsumed().thenRun(() => cb(RightUnit)))
+          Pull.eval(F.async[Unit] { cb =>
+            F.delay(discardReturn(writer.whenConsumed().thenRun(() => cb(RightUnit))))
+              .as(Some(F.delay(
+                writer.close()
+              )))
           }) >> writeOnDemand(writer, tail)
       case None =>
         Pull.done
