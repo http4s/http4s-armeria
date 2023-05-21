@@ -70,6 +70,18 @@ class ArmeriaClientSuite extends CatsEffectSuite {
         }
       )
       .service(
+        "/delayed",
+        new HttpService {
+          override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
+            Thread.sleep(1000)
+            HttpResponse.from(
+              req
+                .aggregate()
+                .thenApply(agg => HttpResponse.of(s"Hello, ${agg.contentUtf8()}!")))
+          }
+        }
+      )
+      .service(
         "/client-streaming",
         new HttpService {
           override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
@@ -204,5 +216,18 @@ class ArmeriaClientSuite extends CatsEffectSuite {
       .unsafeRunSync()
       .reduce(_ + " " + _)
     assertEquals(response, "1! 2! 3! 4! 5!")
+  }
+
+  test("timeout response") {
+    val (_, client) = fixture()
+
+    val res = client.expect[String](uri"/delayed")
+
+    res.as(false).timeoutTo(100.millis, IO.pure(true)).timed.flatMap { case (duration, result) =>
+      IO {
+        assert(clue(duration) < 1.second)
+        assert(result)
+      }
+    }
   }
 }
