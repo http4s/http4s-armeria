@@ -27,17 +27,15 @@ import com.linecorp.armeria.common.{
   HttpMethod,
   HttpRequest,
   HttpResponse,
-  RequestHeaders,
-  ResponseHeaders
+  RequestHeaders
 }
 import fs2.interop.reactivestreams._
 import fs2.{Chunk, Stream}
 import cats.effect.kernel.{Async, MonadCancel}
+import cats.effect.syntax.all._
 import org.http4s.client.Client
 import org.http4s.internal.CollectionCompat.CollectionConverters._
 import org.typelevel.ci.CIString
-
-import java.util.concurrent.{CancellationException, CompletableFuture, CompletionException}
 
 private[armeria] final class ArmeriaClient[F[_]] private[client] (
     private val client: WebClient
@@ -93,7 +91,9 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
   private def toResponse(response: HttpResponse): F[Response[F]] = {
     val splitResponse = response.split()
     for {
-      headers <- fromCompletableFuture(splitResponse.headers)
+      headers <- F
+        .fromCompletableFuture(F.delay(splitResponse.headers))
+        .cancelable(F.delay(response.abort()))
       status <- F.fromEither(Status.fromInt(headers.status().code()))
       body =
         splitResponse
@@ -102,23 +102,6 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
           .flatMap(x => Stream.chunk(Chunk.array(x.array())))
     } yield Response(status = status, headers = toHeaders(headers), body = body)
   }
-
-  private def fromCompletableFuture(cf: => CompletableFuture[ResponseHeaders]): F[ResponseHeaders] =
-    F.async { cb =>
-      cf.handle[Unit] { (result: ResponseHeaders, err: Throwable) =>
-        err match {
-          case null =>
-            cb(Right(result))
-          case _: CancellationException =>
-            ()
-          case ex: CompletionException if ex.getCause ne null =>
-            cb(Left(ex.getCause))
-          case ex =>
-            cb(Left(ex))
-        }
-      }
-      F.delay(Some(F.delay(cf.cancel(true)).void))
-    }
 
   /** Converts Armeria's [[com.linecorp.armeria.common.HttpHeaders]] to http4s' [[Headers]]. */
   private def toHeaders(req: HttpHeaders): Headers =
