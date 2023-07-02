@@ -73,11 +73,11 @@ class ArmeriaClientSuite extends CatsEffectSuite {
         "/delayed",
         new HttpService {
           override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
-            Thread.sleep(1000)
-            HttpResponse.from(
+            val response = HttpResponse.from(
               req
                 .aggregate()
                 .thenApply(agg => HttpResponse.of(s"Hello, ${agg.contentUtf8()}!")))
+            HttpResponse.delayed(response, java.time.Duration.ofSeconds(1))
           }
         }
       )
