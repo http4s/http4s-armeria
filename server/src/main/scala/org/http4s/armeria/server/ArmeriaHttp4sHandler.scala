@@ -40,7 +40,6 @@ import com.linecorp.armeria.server.{HttpService, ServiceRequestContext}
 import org.typelevel.vault.{Key => VaultKey, Vault}
 import fs2._
 import fs2.interop.reactivestreams._
-import org.http4s.internal.CollectionCompat.CollectionConverters._
 import ArmeriaHttp4sHandler.{RightUnit, canHasBody, defaultVault, toHttp4sMethod}
 import com.comcast.ip4s.SocketAddress
 import org.http4s.server.{
