@@ -19,6 +19,7 @@ package armeria
 package server
 
 import cats.effect.{Async, IO}
+import cats.effect.std.Dispatcher
 import cats.effect.unsafe.implicits.global
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
@@ -39,10 +40,7 @@ import com.linecorp.armeria.server.{HttpService, ServiceRequestContext}
 import org.typelevel.vault.{Key => VaultKey, Vault}
 import fs2._
 import fs2.interop.reactivestreams._
-
-import java.net.InetSocketAddress
 import ArmeriaHttp4sHandler.{RightUnit, canHasBody, defaultVault, toHttp4sMethod}
-import cats.effect.std.Dispatcher
 import com.comcast.ip4s.SocketAddress
 import org.http4s.server.{
   DefaultServiceErrorHandler,
@@ -213,8 +211,8 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
       .insert(
         Request.Keys.ConnectionInfo,
         Request.Connection(
-          local = SocketAddress.fromInetSocketAddress(ctx.localAddress[InetSocketAddress]),
-          remote = SocketAddress.fromInetSocketAddress(ctx.remoteAddress[InetSocketAddress]),
+          local = SocketAddress.fromInetSocketAddress(ctx.localAddress),
+          remote = SocketAddress.fromInetSocketAddress(ctx.remoteAddress),
           secure = secure
         )
       )
