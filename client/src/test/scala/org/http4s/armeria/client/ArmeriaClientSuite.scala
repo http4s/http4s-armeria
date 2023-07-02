@@ -76,7 +76,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
             val response = HttpResponse.from(
               req
                 .aggregate()
-                .thenApply(agg => HttpResponse.of(s"Hello, ${agg.contentUtf8()}!")))
+                .thenApply[HttpResponse](agg => HttpResponse.of(s"Hello, ${agg.contentUtf8()}!")))
             HttpResponse.delayed(response, java.time.Duration.ofSeconds(1))
           }
         }
