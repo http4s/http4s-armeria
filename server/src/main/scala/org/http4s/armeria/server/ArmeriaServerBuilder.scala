@@ -314,16 +314,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     atBuild(_.meterRegistry(meterRegistry))
 
   private def shutdown(armeriaServer: BackendServer): F[Unit] =
-    F.async_[Unit] { cb =>
-      val _ = armeriaServer
-        .stop()
-        .whenComplete { (_, cause) =>
-          if (cause == null)
-            cb(Right(()))
-          else
-            cb(Left(cause))
-        }
-    }
+    F.fromCompletableFuture(F.delay(armeriaServer.stop())).void
 
   override def withBanner(banner: immutable.Seq[String]): Self = copy(banner = banner.toList)
 
