@@ -98,7 +98,8 @@ sealed class ArmeriaServerBuilder[F[_]] private (
 
                 val armeriaVersion = Version.get("armeria").artifactVersion()
 
-                logger.info(s"http4s v${BuildInfo.version} on Armeria v$armeriaVersion started")
+                dispatcher.unsafeRunSync(
+                  logger.info(s"http4s v${BuildInfo.version} on Armeria v$armeriaVersion started"))
               }
             })
             armeriaServer0.start().join()
