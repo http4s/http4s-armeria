@@ -54,7 +54,7 @@ import org.http4s.server.{
 }
 import org.http4s.server.defaults.{IdleTimeout, ResponseTimeout, ShutdownTimeout}
 import org.http4s.syntax.all._
-import org.log4s.{Logger, getLogger}
+import org.typelevel.log4cats.LoggerFactory
 
 import scala.collection.immutable
 import scala.concurrent.duration.FiniteDuration
@@ -63,13 +63,13 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     addServices: AddServices[F],
     socketAddress: InetSocketAddress,
     serviceErrorHandler: ServiceErrorHandler[F],
-    banner: List[String])(implicit protected val F: Async[F])
+    banner: List[String])(implicit protected val F: Async[F], loggerFactory: LoggerFactory[F])
     extends ServerBuilder[F] {
   override type Self = ArmeriaServerBuilder[F]
 
   type DecoratingFunction = (HttpService, ServiceRequestContext, HttpRequest) => HttpResponse
 
-  private[this] val logger: Logger = getLogger
+  private[this] val logger = loggerFactory.getLogger
 
   override def bindSocketAddress(socketAddress: InetSocketAddress): Self =
     copy(socketAddress = socketAddress)
@@ -324,16 +324,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     atBuild(_.meterRegistry(meterRegistry))
 
   private def shutdown(armeriaServer: BackendServer): F[Unit] =
-    F.async_[Unit] { cb =>
-      val _ = armeriaServer
-        .stop()
-        .whenComplete { (_, cause) =>
-          if (cause == null)
-            cb(Right(()))
-          else
-            cb(Left(cause))
-        }
-    }
+    F.fromCompletableFuture(F.delay(armeriaServer.stop())).void
 
   override def withBanner(banner: immutable.Seq[String]): Self = copy(banner = banner.toList)
 
@@ -359,7 +350,7 @@ object ArmeriaServerBuilder {
   type AddServices[F[_]] = (ArmeriaBuilder, Dispatcher[F]) => F[ArmeriaBuilder]
 
   /** Returns a newly created [[org.http4s.armeria.server.ArmeriaServerBuilder]]. */
-  def apply[F[_]: Async]: ArmeriaServerBuilder[F] =
+  def apply[F[_]: Async: LoggerFactory]: ArmeriaServerBuilder[F] =
     new ArmeriaServerBuilder(
       (armeriaBuilder, _) => armeriaBuilder.pure,
       socketAddress = defaults.IPv4SocketAddress.toInetSocketAddress,

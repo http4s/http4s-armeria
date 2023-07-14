@@ -16,12 +16,14 @@
 
 package org.http4s.armeria.server
 
+import java.net.URI
+
 import cats.effect.{IO, Resource}
 import com.linecorp.armeria.common.SessionProtocol
 import com.linecorp.armeria.server.Server
-
-import java.net.URI
 import munit.{CatsEffectFunFixtures, CatsEffectSuite}
+import org.typelevel.log4cats.LoggerFactory
+import org.typelevel.log4cats.slf4j.Slf4jFactory
 
 import scala.concurrent.duration._
 import scala.util.Try
@@ -49,6 +51,8 @@ trait ServerFixture extends CatsEffectFunFixtures {
     "armeria-server-fixture",
     Resource.make(IO(setUp()))(_ => IO(tearDown()))
   )
+
+  private implicit val logging: LoggerFactory[IO] = Slf4jFactory.create[IO]
 
   private def setUp(): Unit = {
     val serverBuilder = ArmeriaServerBuilder[IO].withGracefulShutdownTimeout(0.seconds, 0.seconds)

@@ -27,13 +27,11 @@ import com.linecorp.armeria.common.{
   HttpMethod,
   HttpRequest,
   HttpResponse,
-  RequestHeaders,
-  ResponseHeaders
+  RequestHeaders
 }
 import fs2.interop.reactivestreams._
 import fs2.{Chunk, Stream}
-
-import java.util.concurrent.CompletableFuture
+import cats.effect.syntax.all._
 import cats.effect.kernel.{Async, MonadCancel}
 import org.http4s.client.Client
 import org.typelevel.ci.CIString
@@ -61,7 +59,7 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
           HttpRequest.of(requestHeaders, HttpData.wrap(bytes, 0, bytes.length))
         )
 
-      case Entity.Default(body, length) =>
+      case Entity.Streamed(body, length) =>
         if (length.nonEmpty || req.contentLength.isDefined) {
           // A non stream response. ExchangeType.RESPONSE_STREAMING will be inferred.
           val request: F[HttpRequest] =
@@ -102,7 +100,9 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
   private def toResponse(response: HttpResponse): F[Response[F]] = {
     val splitResponse = response.split()
     for {
-      headers <- fromCompletableFuture(splitResponse.headers)
+      headers <- F
+        .fromCompletableFuture(F.delay(splitResponse.headers))
+        .cancelable(F.delay(response.abort()))
       status <- F.fromEither(Status.fromInt(headers.status().code()))
       contentLength <- F.delay(headers.contentLength())
       body =
@@ -113,21 +113,8 @@ private[armeria] final class ArmeriaClient[F[_]] private[client] (
     } yield Response(
       status = status,
       headers = toHeaders(headers),
-      entity = Entity.Default(body = body, length = Option.when(contentLength > 0)(contentLength)))
+      entity = Entity.Streamed(body = body, length = Option.when(contentLength > 0)(contentLength)))
   }
-
-  /** Converts [[java.util.concurrent.CompletableFuture]] to `F[_]` */
-  private def fromCompletableFuture(
-      completableFuture: CompletableFuture[ResponseHeaders]): F[ResponseHeaders] =
-    F.async_[ResponseHeaders] { cb =>
-      val _ = completableFuture.handle { (result, ex) =>
-        if (ex != null)
-          cb(Left(ex))
-        else
-          cb(Right(result))
-        null
-      }
-    }
 
   /** Converts Armeria's [[com.linecorp.armeria.common.HttpHeaders]] to http4s' [[Headers]]. */
   private def toHeaders(req: HttpHeaders): Headers =

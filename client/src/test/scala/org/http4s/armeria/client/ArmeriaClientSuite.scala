@@ -70,6 +70,18 @@ class ArmeriaClientSuite extends CatsEffectSuite {
         }
       )
       .service(
+        "/delayed",
+        new HttpService {
+          override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
+            val response = HttpResponse.from(
+              req
+                .aggregate()
+                .thenApply[HttpResponse](agg => HttpResponse.of(s"Hello, ${agg.contentUtf8()}!")))
+            HttpResponse.delayed(response, java.time.Duration.ofSeconds(1))
+          }
+        }
+      )
+      .service(
         "/client-streaming",
         new HttpService {
           override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
@@ -158,7 +170,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
   test("post") {
     val (_, client) = fixture()
     val body = Stream.emits("Armeria".getBytes).covary[IO]
-    val req = Request(method = Method.POST, uri = uri"/post", entity = Entity.Default(body, None))
+    val req = Request(method = Method.POST, uri = uri"/post", entity = Entity.Streamed(body, None))
     val response = client.expect[String](req).unsafeRunSync()
     assertEquals(response, "Hello, Armeria!")
   }
@@ -184,7 +196,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
     val req = Request(
       method = Method.POST,
       uri = uri"/client-streaming",
-      entity = Entity.Default(body, None))
+      entity = Entity.Streamed(body, None))
     val response = client.expect[String](req).unsafeRunSync()
     assertEquals(response, "1 2 3 4 5")
   }
@@ -199,7 +211,10 @@ class ArmeriaClientSuite extends CatsEffectSuite {
       .through(text.utf8.encode)
 
     val req =
-      Request(method = Method.POST, uri = uri"/bidi-streaming", entity = Entity.Default(body, None))
+      Request(
+        method = Method.POST,
+        uri = uri"/bidi-streaming",
+        entity = Entity.Streamed(body, None))
     val response = client
       .stream(req)
       .flatMap(res => res.bodyText)
@@ -208,5 +223,18 @@ class ArmeriaClientSuite extends CatsEffectSuite {
       .unsafeRunSync()
       .reduce(_ + " " + _)
     assertEquals(response, "1! 2! 3! 4! 5!")
+  }
+
+  test("timeout response") {
+    val (_, client) = fixture()
+
+    val res = client.expect[String](uri"/delayed")
+
+    res.as(false).timeoutTo(100.millis, IO.pure(true)).timed.flatMap { case (duration, result) =>
+      IO {
+        assert(clue(duration) < 1.second)
+        assert(result)
+      }
+    }
   }
 }
