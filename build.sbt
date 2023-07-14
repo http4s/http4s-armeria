@@ -24,7 +24,6 @@ val versions = new {
   val armeria = "1.24.2"
   val fs2 = "3.7.0"
   val http4s = "1.0.0-M40"
-  val log4cats = "2.6.0"
   val logback = "1.2.12"
   val micrometer = "1.9.2"
   val munit = "0.7.29"
