@@ -49,6 +49,7 @@ import org.http4s.server.{
   ServiceErrorHandler
 }
 import org.typelevel.ci.CIString
+import org.typelevel.log4cats.LoggerFactory
 import scodec.bits.ByteVector
 
 import scala.jdk.CollectionConverters._
@@ -70,7 +71,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
     val responseWriter = HttpResponse.streaming()
     dispatcher.unsafeRunAndForget(
       toRequest(ctx, req)
-        .fold(onParseFailure(_, responseWriter), handleRequest(_, responseWriter))
+        .fold(onParseFailure(_, ctx, responseWriter), handleRequest(_, ctx, responseWriter))
         .handleError { ex =>
           discardReturn(responseWriter.close(ex))
         }
@@ -78,18 +79,27 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
     responseWriter
   }
 
-  private def handleRequest(request: Request[F], writer: HttpResponseWriter): F[Unit] =
+  private def handleRequest(
+      request: Request[F],
+      ctx: ServiceRequestContext,
+      writer: HttpResponseWriter): F[Unit] =
     serviceFn(request)
       .recoverWith(serviceErrorHandler(request))
-      .flatMap(toHttpResponse(_, writer))
+      .flatMap(toHttpResponse(_, ctx, writer))
 
-  private def onParseFailure(parseFailure: ParseFailure, writer: HttpResponseWriter): F[Unit] = {
+  private def onParseFailure(
+      parseFailure: ParseFailure,
+      ctx: ServiceRequestContext,
+      writer: HttpResponseWriter): F[Unit] = {
     val response = Response[F](Status.BadRequest).withEntity(parseFailure.sanitized)
-    toHttpResponse(response, writer)
+    toHttpResponse(response, ctx, writer)
   }
 
   /** Converts http4s' [[Response]] to Armeria's [[HttpResponse]]. */
-  private def toHttpResponse(response: Response[F], writer: HttpResponseWriter): F[Unit] = {
+  private def toHttpResponse(
+      response: Response[F],
+      ctx: ServiceRequestContext,
+      writer: HttpResponseWriter): F[Unit] = {
     val headers = toHttpHeaders(response.headers, response.status.some)
     writer.write(headers)
 
@@ -102,7 +112,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
         writer.write(HttpData.wrap(bytes, 0, bytes.length))
         maybeWriteTrailersAndClose(writer, response)
 
-      case Entity.Default(body, length) =>
+      case Entity.Streamed(body, length) =>
         if (length.nonEmpty || response.contentLength.isDefined) {
           // non stream response
           body.chunks.compile.toVector
@@ -114,7 +124,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
               maybeWriteTrailersAndClose(writer, response)
             }
         } else {
-          writeOnDemand(writer, body).stream
+          writeOnDemand(writer, ctx, body).stream
             .onFinalize(maybeWriteTrailersAndClose(writer, response))
             .compile
             .drain
@@ -133,6 +143,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 
   private def writeOnDemand(
       writer: HttpResponseWriter,
+      ctx: ServiceRequestContext,
       body: Stream[F, Byte]): Pull[F, Nothing, Unit] =
     body.pull.uncons.flatMap {
       case Some((head, tail)) =>
@@ -141,9 +152,12 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
         if (tail == Stream.empty)
           Pull.done
         else
-          Pull.eval(F.async_[Unit] { cb =>
-            discardReturn(writer.whenConsumed().thenRun(() => cb(RightUnit)))
-          }) >> writeOnDemand(writer, tail)
+          Pull.eval(F.async[Unit] { cb =>
+            F.delay(discardReturn(writer.whenConsumed().thenRun(() => cb(RightUnit))))
+              .as(Some(F.delay(
+                ctx.cancel()
+              )))
+          }) >> writeOnDemand(writer, ctx, tail)
       case None =>
         Pull.done
     }
@@ -192,7 +206,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
   /** Converts an HTTP payload to [[Entity]]. */
   private def toEntity(req: HttpRequest): Entity[F] =
     if (canHasBody(req.method())) {
-      Entity.Default(
+      Entity.Streamed(
         req
           .toStreamBuffered[F](1)
           .flatMap { obj =>
@@ -243,7 +257,7 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 }
 
 private[armeria] object ArmeriaHttp4sHandler {
-  def apply[F[_]: Async](
+  def apply[F[_]: Async: LoggerFactory](
       prefix: String,
       service: HttpApp[F],
       dispatcher: Dispatcher[F]): ArmeriaHttp4sHandler[F] =
