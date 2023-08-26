@@ -63,7 +63,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
         "/post",
         new HttpService {
           override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse =
-            HttpResponse.from(
+            HttpResponse.of(
               req
                 .aggregate()
                 .thenApply[HttpResponse](agg => HttpResponse.of(s"Hello, ${agg.contentUtf8()}!")))
@@ -73,7 +73,7 @@ class ArmeriaClientSuite extends CatsEffectSuite {
         "/delayed",
         new HttpService {
           override def serve(ctx: ServiceRequestContext, req: HttpRequest): HttpResponse = {
-            val response = HttpResponse.from(
+            val response = HttpResponse.of(
               req
                 .aggregate()
                 .thenApply[HttpResponse](agg => HttpResponse.of(s"Hello, ${agg.contentUtf8()}!")))
