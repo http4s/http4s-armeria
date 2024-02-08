@@ -21,7 +21,7 @@ ThisBuild / resolvers += Resolver.mavenLocal
 ThisBuild / Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true -Dcom.linecorp.armeria.verboseExceptions=always"
 
 val versions = new {
-  val armeria = "1.27.0"
+  val armeria = "1.27.1"
   val fs2 = "3.9.4"
   val http4s = "0.23.25"
   val logback = "1.2.13"
