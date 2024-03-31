@@ -37,7 +37,7 @@ object Main extends IOApp {
       .use { armeria =>
         logger.info(
           s"Server has been started. Serving DocService at http://127.0.0.1:${armeria.server.activeLocalPort
-            () }/docs"
+            ()}/docs"
         )
         IO.never
       }
