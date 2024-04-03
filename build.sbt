@@ -24,6 +24,7 @@ val versions = new {
   val armeria = "1.27.2"
   val fs2 = "3.10.2"
   val http4s = "1.0.0-M41"
+  val log4cats = "2.6.0"
   val logback = "1.2.13"
   val micrometer = "1.9.2"
   val munit = "0.7.29"
@@ -52,6 +53,7 @@ lazy val server = project
       "com.linecorp.armeria" % "armeria" % versions.armeria,
       "co.fs2" %% "fs2-reactive-streams" % versions.fs2,
       "org.http4s" %% "http4s-server" % versions.http4s,
+      "org.typelevel" %% "log4cats-slf4j" % versions.log4cats % Test,
       "ch.qos.logback" % "logback-classic" % versions.logback % Test,
       "org.http4s" %% "http4s-dsl" % versions.http4s % Test
     ) ++ munit
