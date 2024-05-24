@@ -27,13 +27,13 @@ val versions = new {
   val log4cats = "2.7.0"
   val logback = "1.2.13"
   val micrometer = "1.9.2"
-  val munit = "0.7.29"
-  val catsEffectMunit = "1.0.7"
+  val munit = "1.0.0"
+  val catsEffectMunit = "2.0.0"
 }
 
 val munit = Seq(
   "org.scalameta" %% "munit" % versions.munit % Test,
-  "org.typelevel" %% "munit-cats-effect-3" % versions.catsEffectMunit % Test
+  "org.typelevel" %% "munit-cats-effect" % versions.catsEffectMunit % Test
 )
 
 lazy val root = project

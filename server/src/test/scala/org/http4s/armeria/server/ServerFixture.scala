@@ -21,7 +21,7 @@ import java.net.URI
 import cats.effect.{IO, Resource}
 import com.linecorp.armeria.common.SessionProtocol
 import com.linecorp.armeria.server.Server
-import munit.{CatsEffectFunFixtures, CatsEffectSuite}
+import munit.{AnyFixture, CatsEffectFunFixtures, CatsEffectSuite}
 import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 
@@ -47,7 +47,7 @@ trait ServerFixture extends CatsEffectFunFixtures {
   protected def httpsPort: Try[Int] = Try(server.activeLocalPort(SessionProtocol.HTTPS))
   protected def httpsUri: Try[URI] = httpsPort.map(port => URI.create(s"https://127.0.0.1:$port"))
 
-  val armeriaServerFixture: Fixture[Unit] = ResourceSuiteLocalFixture(
+  val armeriaServerFixture: AnyFixture[Unit] = ResourceSuiteLocalFixture(
     "armeria-server-fixture",
     Resource.make(IO(setUp()))(_ => IO(tearDown()))
   )
