@@ -1,7 +1,7 @@
 # http4s-armeria
 
 [![Maven Central](https://img.shields.io/maven-central/v/org.http4s/http4s-armeria-server_2.13?versionPrefix=0.)](https://img.shields.io/maven-central/v/org.http4s/http4s-armeria-server_2.13?versionPrefix=0.)
-[![Build Status](https://github.com/http4s/http4s-armeria/workflows/Build%20Pull%20Requests/badge.svg?branch=main)](https://github.com/http4s/http4s-armeria/actions?query=workflow%3A"Build+c+Requests")
+![Build Status](https://github.com/http4s/http4s-armeria/actions/workflows/ci.yml/badge.svg?branch=main)
 
 
 [Http4s] server and client on [Armeria]
