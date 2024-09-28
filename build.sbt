@@ -10,7 +10,7 @@ ThisBuild / developers := List(
     url("https://github.com/ikhoon")
   )
 )
-ThisBuild / crossScalaVersions := Seq("2.13.15", "2.12.20", "3.3.3")
+ThisBuild / crossScalaVersions := Seq("2.13.15", "2.12.20", "3.3.4")
 ThisBuild / scalaVersion := crossScalaVersions.value.head
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.5.0")
 ThisBuild / tlCiReleaseBranches := Seq("main")
