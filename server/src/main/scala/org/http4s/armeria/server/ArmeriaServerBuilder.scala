@@ -21,13 +21,7 @@ import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import com.linecorp.armeria.common.util.Version
-import com.linecorp.armeria.common.{
-  HttpRequest,
-  HttpResponse,
-  SessionProtocol,
-  TlsKeyPair,
-  TlsProvider
-}
+import com.linecorp.armeria.common.{HttpRequest, HttpResponse, SessionProtocol, TlsKeyPair}
 import com.linecorp.armeria.server.{
   HttpService,
   HttpServiceWithRoutes,
@@ -254,11 +248,8 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     */
   def withTls(keyCertChainFile: File, keyFile: File, keyPassword: Option[String]): Self =
     atBuild(
-      _.tlsProvider(
-        TlsProvider
-          .builder()
-          .keyPair(TlsKeyPair.of(keyFile, keyPassword.orNull, keyCertChainFile))
-          .build()))
+      _.tls(TlsKeyPair.of(keyFile, keyPassword.orNull, keyCertChainFile))
+    )
 
   /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] with the specified
     * `keyCertChainInputStream`, `keyInputStream` and `keyPassword`.
@@ -276,11 +267,9 @@ sealed class ArmeriaServerBuilder[F[_]] private (
           .both(keyInputStream)
           .use { case (keyCertChain, key) =>
             F.delay {
-              ab.tlsProvider(
-                TlsProvider
-                  .builder()
-                  .keyPair(TlsKeyPair.of(key, keyPassword.orNull, keyCertChain))
-                  .build())
+              ab.tls(
+                TlsKeyPair.of(key, keyPassword.orNull, keyCertChain)
+              )
             }
           }
       })
@@ -292,12 +281,7 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     *   [[withTlsCustomizer]]
     */
   def withTls(key: PrivateKey, keyCertChain: X509Certificate*): Self =
-    atBuild(
-      _.tlsProvider(
-        TlsProvider
-          .builder()
-          .keyPair(TlsKeyPair.of(key, keyCertChain: _*))
-          .build()))
+    atBuild(_.tls(TlsKeyPair.of(key, keyCertChain: _*)))
 
   /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] with the specified
     * [[javax.net.ssl.KeyManagerFactory]].
