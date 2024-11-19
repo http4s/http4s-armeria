@@ -21,12 +21,7 @@ import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import com.linecorp.armeria.common.util.Version
-import com.linecorp.armeria.common.{
-  HttpRequest,
-  HttpResponse,
-  SessionProtocol,
-  TlsKeyPair
-}
+import com.linecorp.armeria.common.{HttpRequest, HttpResponse, SessionProtocol, TlsKeyPair}
 import com.linecorp.armeria.server.{
   HttpService,
   HttpServiceWithRoutes,
