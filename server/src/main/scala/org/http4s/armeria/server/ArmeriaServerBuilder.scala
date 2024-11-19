@@ -21,7 +21,13 @@ import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import com.linecorp.armeria.common.util.Version
-import com.linecorp.armeria.common.{HttpRequest, HttpResponse, SessionProtocol}
+import com.linecorp.armeria.common.{
+  HttpRequest,
+  HttpResponse,
+  SessionProtocol,
+  TlsKeyPair,
+  TlsProvider
+}
 import com.linecorp.armeria.server.{
   HttpService,
   HttpServiceWithRoutes,
@@ -258,7 +264,12 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     *   [[withTlsCustomizer]]
     */
   def withTls(keyCertChainFile: File, keyFile: File, keyPassword: Option[String]): Self =
-    atBuild(_.tls(keyCertChainFile, keyFile, keyPassword.orNull))
+    atBuild(
+      _.tlsProvider(
+        TlsProvider
+          .builder()
+          .keyPair(TlsKeyPair.of(keyFile, keyPassword.orNull, keyCertChainFile))
+          .build()))
 
   /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] with the specified
     * `keyCertChainInputStream`, `keyInputStream` and `keyPassword`.
@@ -276,7 +287,11 @@ sealed class ArmeriaServerBuilder[F[_]] private (
           .both(keyInputStream)
           .use { case (keyCertChain, key) =>
             F.delay {
-              ab.tls(keyCertChain, key, keyPassword.orNull)
+              ab.tlsProvider(
+                TlsProvider
+                  .builder()
+                  .keyPair(TlsKeyPair.of(key, keyPassword.orNull, keyCertChain))
+                  .build())
             }
           }
       })
@@ -288,7 +303,12 @@ sealed class ArmeriaServerBuilder[F[_]] private (
     *   [[withTlsCustomizer]]
     */
   def withTls(key: PrivateKey, keyCertChain: X509Certificate*): Self =
-    atBuild(_.tls(key, keyCertChain: _*))
+    atBuild(
+      _.tlsProvider(
+        TlsProvider
+          .builder()
+          .keyPair(TlsKeyPair.of(key, keyCertChain: _*))
+          .build()))
 
   /** Configures SSL or TLS of this [[com.linecorp.armeria.server.Server]] with the specified
     * [[javax.net.ssl.KeyManagerFactory]].
