@@ -24,7 +24,7 @@ import cats.implicits._
 import com.linecorp.armeria.client.logging.LoggingClient
 import com.linecorp.armeria.client.{ClientFactory, WebClient}
 import com.linecorp.armeria.common.{HttpData, HttpStatus}
-import com.linecorp.armeria.server.logging.{ContentPreviewingService, LoggingService}
+import com.linecorp.armeria.server.logging.LoggingService
 import fs2._
 import munit.CatsEffectSuite
 import org.http4s.dsl.io._
@@ -50,7 +50,9 @@ class ArmeriaServerBuilderSuite extends CatsEffectSuite with ServerFixture {
       IO(Thread.currentThread.getName).flatMap(Ok(_))
 
     case req @ POST -> Root / "echo" =>
-      Ok(req.body)
+      req.decode[String] { r =>
+        Ok(r)
+      }
 
     case GET -> Root / "trailers" =>
       Ok("Hello").map(response =>
@@ -72,7 +74,6 @@ class ArmeriaServerBuilderSuite extends CatsEffectSuite with ServerFixture {
 
   protected def configureServer(serverBuilder: ArmeriaServerBuilder[IO]): ArmeriaServerBuilder[IO] =
     serverBuilder
-      .withDecorator(ContentPreviewingService.newDecorator(Int.MaxValue))
       .withDecorator(LoggingService.newDecorator())
       .bindAny()
       .withRequestTimeout(10.seconds)
