@@ -247,7 +247,19 @@ private[armeria] object ArmeriaHttp4sHandler {
   def apply[F[_]: Async](
       prefix: String,
       service: HttpApp[F],
-      dispatcher: Dispatcher[F]): ArmeriaHttp4sHandler[F] =
+      serviceErrorHandler: ServiceErrorHandler[F],
+      dispatcher: Dispatcher[F]
+  ): ArmeriaHttp4sHandler[F] =
+    new ArmeriaHttp4sHandler(prefix, service, serviceErrorHandler, dispatcher)
+
+  @deprecated(
+    "Use fully specified `org.http4s.armeria.server.ArmeriaHttp4sHandler.apply` instead",
+    "0.5.5")
+  def apply[F[_]: Async](
+      prefix: String,
+      service: HttpApp[F],
+      dispatcher: Dispatcher[F]
+  ): ArmeriaHttp4sHandler[F] =
     new ArmeriaHttp4sHandler(prefix, service, DefaultServiceErrorHandler, dispatcher)
 
   private val serverSoftware: ServerSoftware =
