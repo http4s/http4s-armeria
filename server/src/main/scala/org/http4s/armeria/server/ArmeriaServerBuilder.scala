@@ -169,7 +169,9 @@ sealed class ArmeriaServerBuilder[F[_]] private (
   def withHttpApp(prefix: String, service: HttpApp[F]): Self =
     copy(addServices = (ab, dispatcher) =>
       addServices(ab, dispatcher).map(
-        _.serviceUnder(prefix, ArmeriaHttp4sHandler(prefix, service, dispatcher))))
+        _.serviceUnder(
+          prefix,
+          ArmeriaHttp4sHandler(prefix, service, serviceErrorHandler, dispatcher))))
 
   /** Decorates all HTTP services with the specified [[DecoratingFunction]]. */
   def withDecorator(decorator: DecoratingFunction): Self =
