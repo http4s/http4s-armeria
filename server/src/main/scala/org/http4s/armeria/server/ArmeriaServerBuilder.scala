@@ -194,6 +194,14 @@ sealed class ArmeriaServerBuilder[F[_]] private (
   def withIdleTimeout(idleTimeout: FiniteDuration): Self =
     atBuild(_.idleTimeoutMillis(idleTimeout.toMillis))
 
+  /** Sets the maximum allowed length of the content decoded at the session layer.
+    *
+    * @param limit
+    *   the maximum allowed length. {@code 0} disables the length limit.
+    */
+  def withMaxRequestLength(limit: Long): Self =
+    atBuild(_.maxRequestLength(limit))
+
   /** Sets the timeout of a request.
     *
     * @param requestTimeout

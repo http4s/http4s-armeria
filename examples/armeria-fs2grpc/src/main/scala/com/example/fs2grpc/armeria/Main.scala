@@ -61,6 +61,7 @@ object Main extends IOApp {
       .bindHttp(httpPort)
       .withIdleTimeout(Duration.Zero)
       .withRequestTimeout(Duration.Zero)
+      .withMaxRequestLength(0L)
       .withHttpServiceUnder("/grpc", grpcService)
       .withHttpRoutes("/rest", ExampleService[IO].routes())
       .withDecorator(LoggingService.newDecorator())
