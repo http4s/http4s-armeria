@@ -361,7 +361,7 @@ object ArmeriaServerBuilder {
     new ArmeriaServerBuilder(
       (armeriaBuilder, _) => armeriaBuilder.pure,
       socketAddress = defaults.IPv4SocketAddress.toInetSocketAddress,
-      serviceErrorHandler = DefaultServiceErrorHandler,
+      serviceErrorHandler = defaultServiceErrorHandler[F],
       banner = defaults.Banner
     )
 }
