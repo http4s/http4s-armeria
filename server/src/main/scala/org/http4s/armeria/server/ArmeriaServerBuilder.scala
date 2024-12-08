@@ -368,8 +368,9 @@ object ArmeriaServerBuilder {
       banner = defaults.Banner
     )
 
-  /** Incorporates the default service error handling from Http4s' [[DefaultServiceErrorHandler]]
-    * and adds handling for some errors propagated from the Armeria side.
+  /** Incorporates the default service error handling from Http4s'
+    * [[org.http4s.server.DefaultServiceErrorHandler DefaultServiceErrorHandler]] and adds handling
+    * for some errors propagated from the Armeria side.
     */
   def defaultServiceErrorHandler[F[_]](implicit
       F: Monad[F]): Request[F] => PartialFunction[Throwable, F[Response[F]]] = {
