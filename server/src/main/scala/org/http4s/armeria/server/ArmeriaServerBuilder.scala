@@ -16,12 +16,25 @@
 
 package org.http4s.armeria.server
 
+import java.io.{File, InputStream}
+import java.net.InetSocketAddress
+import java.security.PrivateKey
+import java.security.cert.X509Certificate
+import java.util.function.{Function => JFunction}
+import javax.net.ssl.KeyManagerFactory
+
+import cats.Monad
 import cats.effect.{Async, Resource}
-import cats.syntax.applicative._
-import cats.syntax.flatMap._
-import cats.syntax.functor._
+import cats.effect.std.Dispatcher
+import cats.syntax.all._
 import com.linecorp.armeria.common.util.Version
-import com.linecorp.armeria.common.{HttpRequest, HttpResponse, SessionProtocol, TlsKeyPair}
+import com.linecorp.armeria.common.{
+  ContentTooLargeException,
+  HttpRequest,
+  HttpResponse,
+  SessionProtocol,
+  TlsKeyPair
+}
 import com.linecorp.armeria.server.{
   HttpService,
   HttpServiceWithRoutes,
@@ -33,16 +46,9 @@ import com.linecorp.armeria.server.{
 import io.micrometer.core.instrument.MeterRegistry
 import io.netty.channel.ChannelOption
 import io.netty.handler.ssl.SslContextBuilder
-import java.io.{File, InputStream}
-import java.net.InetSocketAddress
-import java.security.PrivateKey
-import java.security.cert.X509Certificate
-import java.util.function.{Function => JFunction}
-
-import cats.effect.std.Dispatcher
-import javax.net.ssl.KeyManagerFactory
 import org.http4s.armeria.server.ArmeriaServerBuilder.AddServices
-import org.http4s.{BuildInfo, HttpApp, HttpRoutes}
+import org.http4s.headers.{Connection, `Content-Length`}
+import org.http4s.{BuildInfo, Headers, HttpApp, HttpRoutes, Request, Response, Status}
 import org.http4s.server.{
   DefaultServiceErrorHandler,
   Server,
@@ -361,4 +367,24 @@ object ArmeriaServerBuilder {
       serviceErrorHandler = DefaultServiceErrorHandler,
       banner = defaults.Banner
     )
+
+  /** Incorporates the default service error handling from Http4s' [[DefaultServiceErrorHandler]]
+    * and adds handling for some errors propagated from the Armeria side.
+    */
+  def defaultServiceErrorHandler[F[_]](implicit
+      F: Monad[F]): Request[F] => PartialFunction[Throwable, F[Response[F]]] = {
+    val contentLengthErrorHandler: Request[F] => PartialFunction[Throwable, F[Response[F]]] =
+      req => { case _: ContentTooLargeException =>
+        Response[F](
+          Status.PayloadTooLarge,
+          req.httpVersion,
+          Headers(
+            Connection.close,
+            `Content-Length`.zero
+          )
+        ).pure[F]
+      }
+
+    req => contentLengthErrorHandler(req).orElse(DefaultServiceErrorHandler(F)(req))
+  }
 }
