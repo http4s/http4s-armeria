@@ -364,4 +364,25 @@ object ArmeriaServerBuilder {
       serviceErrorHandler = defaultServiceErrorHandler[F],
       banner = defaults.Banner
     )
+
+  /** Incorporates the default service error handling from Http4s'
+    * [[org.http4s.server.DefaultServiceErrorHandler DefaultServiceErrorHandler]] and adds handling
+    * for some errors propagated from the Armeria side.
+    */
+  def defaultServiceErrorHandler[F[_]](implicit
+      F: Monad[F]): Request[F] => PartialFunction[Throwable, F[Response[F]]] = {
+    val contentLengthErrorHandler: Request[F] => PartialFunction[Throwable, F[Response[F]]] =
+      req => { case _: ContentTooLargeException =>
+        Response[F](
+          Status.PayloadTooLarge,
+          req.httpVersion,
+          Headers(
+            Connection.close,
+            `Content-Length`.zero
+          )
+        ).pure[F]
+      }
+
+    req => contentLengthErrorHandler(req).orElse(DefaultServiceErrorHandler(F)(req))
+  }
 }
