@@ -18,7 +18,7 @@
     - Distributed tracing
     - [and](https://armeria.dev/docs/server-docservice) [so](https://armeria.dev/docs/server-thrift) [on](https://armeria.dev/docs/advanced-metrics)
 
-# Current status
+## Current status
 
 Two series are currently under active development: the `0.x` and `1.0-x` release milestone series.
 The first depends on the `http4s-core`'s `0.23` series and belongs to the [main branch].
