@@ -375,7 +375,8 @@ object ArmeriaServerBuilder {
     * for some errors propagated from the Armeria side.
     */
   def defaultServiceErrorHandler[F[_]](implicit
-      F: Monad[F], LF: LoggerFactory[F]): Request[F] => PartialFunction[Throwable, F[Response[F]]] = {
+      F: Monad[F],
+      LF: LoggerFactory[F]): Request[F] => PartialFunction[Throwable, F[Response[F]]] = {
     val contentLengthErrorHandler: Request[F] => PartialFunction[Throwable, F[Response[F]]] =
       req => { case _: ContentTooLargeException =>
         Response[F](

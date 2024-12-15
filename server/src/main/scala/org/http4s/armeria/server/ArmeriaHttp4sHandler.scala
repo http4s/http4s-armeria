@@ -43,13 +43,11 @@ import fs2.interop.reactivestreams._
 import ArmeriaHttp4sHandler.{RightUnit, canHasBody, defaultVault, toHttp4sMethod}
 import com.comcast.ip4s.SocketAddress
 import org.http4s.server.{
-  DefaultServiceErrorHandler,
   SecureSession,
   ServerRequestKeys,
   ServiceErrorHandler
 }
 import org.typelevel.ci.CIString
-import org.typelevel.log4cats.LoggerFactory
 import scodec.bits.ByteVector
 
 import scala.jdk.CollectionConverters._
@@ -257,11 +255,12 @@ private[armeria] class ArmeriaHttp4sHandler[F[_]](
 }
 
 private[armeria] object ArmeriaHttp4sHandler {
-  def apply[F[_]: Async: LoggerFactory](
+  def apply[F[_]: Async](
       prefix: String,
       service: HttpApp[F],
+      serviceErrorHandler: ServiceErrorHandler[F],
       dispatcher: Dispatcher[F]): ArmeriaHttp4sHandler[F] =
-    new ArmeriaHttp4sHandler(prefix, service, DefaultServiceErrorHandler, dispatcher)
+    new ArmeriaHttp4sHandler(prefix, service, serviceErrorHandler, dispatcher)
 
   private val serverSoftware: ServerSoftware =
     ServerSoftware("armeria", Some(Version.get("armeria").artifactVersion()))

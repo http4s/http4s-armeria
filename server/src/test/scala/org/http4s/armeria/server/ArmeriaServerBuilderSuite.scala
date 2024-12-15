@@ -50,7 +50,7 @@ class ArmeriaServerBuilderSuite extends CatsEffectSuite with ServerFixture {
       IO(Thread.currentThread.getName).flatMap(Ok(_))
 
     case req @ POST -> Root / "echo" =>
-      req.decode[String] { r =>
+      req.decode[IO, String] { r =>
         Ok(r)
       }
 
