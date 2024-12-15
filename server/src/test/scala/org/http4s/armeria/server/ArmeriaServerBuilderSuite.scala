@@ -24,7 +24,7 @@ import cats.implicits._
 import com.linecorp.armeria.client.logging.LoggingClient
 import com.linecorp.armeria.client.{ClientFactory, WebClient}
 import com.linecorp.armeria.common.{HttpData, HttpStatus}
-import com.linecorp.armeria.server.logging.{ContentPreviewingService, LoggingService}
+import com.linecorp.armeria.server.logging.LoggingService
 import fs2._
 import munit.CatsEffectSuite
 import org.http4s.dsl.io._
@@ -50,7 +50,9 @@ class ArmeriaServerBuilderSuite extends CatsEffectSuite with ServerFixture {
       IO(Thread.currentThread.getName).flatMap(Ok(_))
 
     case req @ POST -> Root / "echo" =>
-      Ok(req.body)
+      req.decode[IO, String] { r =>
+        Ok(r)
+      }
 
     case GET -> Root / "trailers" =>
       Ok("Hello").map(response =>
@@ -72,11 +74,11 @@ class ArmeriaServerBuilderSuite extends CatsEffectSuite with ServerFixture {
 
   protected def configureServer(serverBuilder: ArmeriaServerBuilder[IO]): ArmeriaServerBuilder[IO] =
     serverBuilder
-      .withDecorator(ContentPreviewingService.newDecorator(Int.MaxValue))
       .withDecorator(LoggingService.newDecorator())
       .bindAny()
       .withRequestTimeout(10.seconds)
       .withGracefulShutdownTimeout(0.seconds, 0.seconds)
+      .withMaxRequestLength(1024 * 1024)
       .withHttpRoutes("/service", service)
 
   lazy val client: WebClient = WebClient
@@ -151,6 +153,16 @@ class ArmeriaServerBuilderSuite extends CatsEffectSuite with ServerFixture {
     assertEquals(postChunkedMultipart("/service/issue2610", "aa", body), "a")
   }
 
+  test("reliably handle entity length limiting") {
+    val input = List.fill(1024 * 1024 + 1)("F").mkString
+
+    val statusIO = IO(
+      postLargeBody("/service/echo", input)
+    )
+
+    assertIO(statusIO, HttpStatus.REQUEST_ENTITY_TOO_LARGE.code())
+  }
+
   test("stream") {
     val response = client.get("/service/stream")
     val deferred = Deferred.unsafe[IO, Boolean]
@@ -174,6 +186,19 @@ class ArmeriaServerBuilderSuite extends CatsEffectSuite with ServerFixture {
       _ <- deferred.get
       _ <- assertIO(IO(buffer.mkString("")), "123456789")
     } yield ()
+  }
+
+  private def postLargeBody(path: String, body: String): Int = {
+    val url = new URL(s"http://127.0.0.1:${httpPort.get}$path")
+    val conn = url.openConnection().asInstanceOf[HttpURLConnection]
+    val bytes = body.getBytes(StandardCharsets.UTF_8)
+    conn.setRequestMethod("POST")
+    conn.setRequestProperty("Content-Type", "text/html; charset=utf-8")
+    conn.setDoOutput(true)
+    conn.getOutputStream.write(bytes)
+    val code = conn.getResponseCode
+    conn.disconnect()
+    code
   }
 
   private def postChunkedMultipart(path: String, boundary: String, body: String): String = {

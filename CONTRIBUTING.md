@@ -10,3 +10,4 @@ request signifies your consent to license your contributions under the
 Apache License 2.0.
 
 [contributors' guide]: https://http4s.org/contributing/
+[Apache License 2.0]: ./LICENSE

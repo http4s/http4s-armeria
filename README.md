@@ -18,6 +18,12 @@
     - Distributed tracing
     - [and](https://armeria.dev/docs/server-docservice) [so](https://armeria.dev/docs/server-thrift) [on](https://armeria.dev/docs/advanced-metrics)
 
+## Current status
+
+Two series are currently under active development: the `0.x` and `1.0-x` release milestone series.
+The first depends on the `http4s-core`'s `0.23` series and belongs to the [main branch].
+The latter is for the cutting-edge `http4s-core`'s `1.0-x` release milestone series and belongs to the [series/1.x branch].
+
 ## Installation
 
 Add the following dependencies to `build.sbt`
@@ -162,3 +168,5 @@ Visit [examples](./examples) to find a fully working example.
 
 [http4s]: https://http4s.org/
 [armeria]: https://armeria.dev/
+[main branch]: https://github.com/http4s/http4s-armeria/tree/main
+[series/1.x branch]: https://github.com/http4s/http4s-armeria/tree/series/1.x
