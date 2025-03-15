@@ -19,6 +19,7 @@ ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses
 ThisBuild / startYear := Some(2020)
 ThisBuild / resolvers += Resolver.mavenLocal
 ThisBuild / Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true -Dcom.linecorp.armeria.verboseExceptions=always"
+ThisBuild / Test / fork := true
 
 val versions = new {
   val armeria = "1.32.2"
