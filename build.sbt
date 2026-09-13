@@ -23,7 +23,7 @@ ThisBuild / Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true 
 val versions = new {
   val armeria = "1.34.2"
   val fs2 = "3.14.0"
-  val http4s = "1.0.0-M46"
+  val http4s = "1.0.0-M48"
   val log4cats = "2.7.1"
   val logback = "1.2.13"
   val micrometer = "1.9.2"
