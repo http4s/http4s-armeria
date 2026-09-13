@@ -10,7 +10,7 @@ ThisBuild / developers := List(
     url("https://github.com/ikhoon")
   )
 )
-ThisBuild / crossScalaVersions := Seq("2.13.18", "3.3.7")
+ThisBuild / crossScalaVersions := Seq("2.13.18", "3.3.8")
 ThisBuild / scalaVersion := crossScalaVersions.value.head
 ThisBuild / tlCiReleaseBranches := Seq("series/1.x")
 ThisBuild / tlVersionIntroduced := Map("3" -> "0.5.0")
@@ -23,12 +23,12 @@ ThisBuild / Test / javaOptions += "-Dcom.linecorp.armeria.verboseResponses=true 
 val versions = new {
   val armeria = "1.34.2"
   val fs2 = "3.12.2"
-  val http4s = "1.0.0-M46"
+  val http4s = "1.0.0-M48"
   val log4cats = "2.8.0"
   val logback = "1.2.13"
   val micrometer = "1.9.2"
-  val munit = "1.2.2"
-  val catsEffectMunit = "2.1.0"
+  val munit = "1.3.6"
+  val catsEffectMunit = "2.2.0"
 }
 
 val munit = Seq(
