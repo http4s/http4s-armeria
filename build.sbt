@@ -27,7 +27,7 @@ val versions = new {
   val logback = "1.2.13"
   val micrometer = "1.9.2"
   val munit = "1.3.6"
-  val catsEffectMunit = "2.2.0"
+  val catsEffectMunit = "2.2.1"
 }
 
 val munit = Seq(
